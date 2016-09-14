@@ -1,0 +1,82 @@
+#!/bin/csh -f
+
+# Old SUN version
+##alias trackx trackAx
+
+# Hires versions (less prone to error)
+# At this stage use trackx.hr and trackmnx
+
+#alias trackx trackx.hr
+
+# Hires version of trackmnx was needed for 1990,1994,2001
+# (tracks > 120 points)
+#alias trackmnx trackmnx.hr
+
+ if ($#argv == 0) then
+   echo "Usage: run-trk.$d yyyy e.g 1998"
+   exit
+ else
+   set d=$1
+   set y=$2
+   set lev=$3
+ endif
+
+echo "Start tracking"
+# Location of cycdat files
+
+ set CYCDAT = ../cycloc
+## set CYCDAT = .
+
+#
+ @ yp = ($y - 1)
+ @ yn = ($y + 1)
+
+echo "y,yp,yn: "$y $yp $yn
+
+ if !(-e $CYCDAT/cycdat.${lev}.$d.$y) then 
+   echo "ERROR: cycdat.${lev}.$d.$y not found"
+   exit
+ endif
+
+#
+ if ($y == 2000) then
+# Assume 2000 -> 20
+  @ y1 = 19
+  @ y2 = 21
+ else if ($y == 1999) then
+# Assume 2000 -> 20
+  @ y1 = 18
+  @ y2 = 20
+ else if ($y < 1999) then
+   @ y1 = ($yp - 1900)
+   @ y2 = ($yn - 1900)
+ else if ($y > 2000) then
+   @ y1 = ($yp - 2000)
+   @ y2 = ($yn - 2000)
+ endif
+
+# Update intrack.cur dastrt,dastop parameters
+ sed -e "s/YP/$y1/" intrack.$d.template | sed -e "s/YN/$y2/" | sed -e "s/YY/$y/" >! intrack.cur
+
+# Perform tracking
+ echo "tracking started"
+ set trkout = trkdat.${lev}.$d.$y.out
+ trackx.hr  -i intrack.cur -c $CYCDAT/cycdat.${lev}.$d.$y >& outtr.$y &&  cat thist?.1 >! $trkout && rm -f thist* 
+ echo "tracking done"
+# Convert to text format
+ trackmnx.hr -i intrkmn.all -o trkdat.${lev}.$d.$y.txt $trkout && rm -f $trkout
+# NOTE: Check for rare NAN code in q column of track file
+ cp trkdat.${lev}.$d.$y.txt trkdat.tmp
+ @ nan = `grep -i nan trkdat.tmp | wc -l`
+ if ($nan > 0) then
+   sed -e "s/\ \ nan/0\.999/" trkdat.${lev}.$d.$y.txt >! trkdat.tmp 
+ endif
+#
+ \mv trkdat.tmp ../trk/trkdat.${lev}.$d.$y
+ \mv outtr.$y ../trk/
+ \rm -f {trkdat.${lev}.$d.$y.txt,outtr.$y,intrack.cur}
+
+# Compress trkdat file - if desired!
+# gzip -f trkdat.${lev}.$d.$y
+
+exit

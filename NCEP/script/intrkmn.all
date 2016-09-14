@@ -1,0 +1,4 @@
+ &nmltrkmn  dastrt=0,hrstrt=0,dastop=999999,hrstop=0,dttrk=0.0,
+            ioptk=999,cctk=0.,dptk=0.,iopgl=999,ccgl=0.,dpgl=0.,
+            delt=999.,
+ &end

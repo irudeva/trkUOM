@@ -1,0 +1,58 @@
+#!/bin/bash
+:
+d=ncep
+h=0N
+lev="slp"
+#max trk length
+ minTRKlen=5
+ TRKlen="TRKlen"
+ gfortran -o $TRKlen $TRKlen.f
+
+#dataset period
+ y0=1979
+ y9=2016
+
+#years to track
+ sy=1979
+ ey=2016
+
+ y=$sy
+
+while [ $y -le $ey ]
+do
+ny=$[$y + 1]
+py=$[$y - 1]
+echo $y
+
+if [ $y -eq $sy ];then
+ ./run-nc2cmp.$d $d $y $lev
+ if [ $y -ne $y0 ];then
+ ./run-nc2cmp.$d $d $py $lev
+ fi
+fi
+if [ $y -ne $y9 ];then
+ ./run-nc2cmp.$d $d $ny $lev
+fi
+ 
+ ./run-cyc.$d $d $y $lev
+ ./run-trk.$d $d $y $lev
+
+ echo 'start rewriting trk output, min length = ' $minTRKlen
+ ./$TRKlen -i ../trk/trkdat.${lev}.$d.$y -o ../trk/trkdat5.${lev}.$d.$y -n $minTRKlen
+
+#rm cmp/*${py}*
+#gzip /work/irudeva/DATA/NCEP-CFS/MSLP1/*${py}*
+
+ if [ $y -ne $y0 ];then
+  rm ../cmp/${lev}.$d.$py.cmp
+ fi
+ if [ $y -eq $ey ];then
+  rm ../cmp/${lev}.$d.$y.cmp
+  rm ../cmp/${lev}.$d.$ny.cmp
+ fi
+
+y=$[$y + 1]
+done
+:
+rm $TRKlen
+exit

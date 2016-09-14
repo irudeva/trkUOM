@@ -1,0 +1,30 @@
+#
+# Note: Debug option 1 (-D 1); first map only (-M 1,1);
+# use level variable as ensemble (-l ensemble_member);
+# use first ensemble (-L 1);
+# -p is path to udunits.dat
+#
+# The input j2.nc is in NetCDF3 format. This was output using cdo:
+#
+#cdo -f nc copy prmsl_1871.nc j.nc
+# Select level 1 - still in *original* NetCDF format (in this case NetCDF4)
+#cdo sellevel,1 prmsl_1871.nc j.nc
+# Now convert to *NetCDF3*: use -f nc
+#cdo -f nc copy j.nc j2.nc
+#
+#from IRA:
+#convert HDF to NetCDF:
+#which ncl_convert2nc
+#/usr/local/ncarg64/bin/ncl_convert2nc
+#ncl_conver2nc MERRA300.prod.assim.const_2d_asm_Nx.00000000.hdf
+#this creates MERRA300.prod.assim.const_2d_asm_Nx.00000000.nc  
+#
+
+alias read_nc2cmp_new /home/keay/bin/read_nc2cmp_new
+set fNC=/work/irudeva/DATA/NCEP-CFS/topo.cfsv2_0.nc
+
+read_nc2cmp_new  -i $fNC -o zs.cfsv2_0.cmp -d "lon,lat,time" \
+-u HGT_L1  -v Z0 -r CFSV2_0 -g "0.5x0.5DEG" -p /home/keay/bin/udunits.dat \
+-D 1 -M 1,1
+
+exit

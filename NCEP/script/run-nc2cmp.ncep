@@ -1,0 +1,58 @@
+#!/bin/bash
+#
+# Note: Debug option 1 (-D 1); first map only (-M 1,1);
+# use level variable as ensemble (-l ensemble_member);
+# use first ensemble (-L 1);
+# -p is path to udunits.dat
+#
+# The input j2.nc is in NetCDF3 format. This was output using cdo:
+#
+#cdo -f nc copy prmsl_1871.nc j.nc
+# Select level 1 - still in *original* NetCDF format (in this case NetCDF4)
+#cdo sellevel,1 prmsl_1871.nc j.nc
+# Now convert to *NetCDF3*: use -f nc
+#cdo -f nc copy j.nc j2.nc
+
+alias read_nc2cmp_new=/home/keay/bin/read_nc2cmp_new
+d=$1
+yr=$2
+lev=$3
+echo "Start nc2cmp"
+echo $d $yr $lev
+
+#if [  [ [ $year % 4 == 0] && [$year % 100 != 0] ] || [ $year % 400 == 0 ]  ]; then
+#   mdat=("0" "31" "29" "31" "30" "31" "30" "31" "31" "30" "31" "30" "31");
+#else
+#   mdat=("0" "31" "28" "31" "30" "31" "30" "31" "31" "30" "31" "30" "31");
+#fi
+:
+echo $lev
+if [[ "$lev" -eq "slp" ]];then
+dNC=/work/irudeva/DATA/NCEP1/Slp/
+fNC=${lev}.${yr}.nc
+echo "convert nc4 to nc3"
+nccopy -k classic ${dNC}$fNC ${dNC}${fNC}\3
+ls 
+else
+dNC=/work/irudeva/DATA/NCEP1/$lev/
+fNC=${dNC}${d}.Z${lev}.${yr}.nc3
+fi
+:
+if [ -e ${dNC}${fNC}\3 ]; then
+cdo -b 64 copy ${dNC}${fNC}3 temp.nc
+:
+if [[ $lev -eq "300" ]];then
+fCMP=../cmp/$d.Z$lev.${yr}.cmp
+read_nc2cmp_new  -i $fNC -o $fCMP -d "longitude,latitude,time" \
+-u z -s 0.102 -U gpm -v Z$lev -r ERAIN -g "1.5x1.5DEG" -p /home/keay/bin/udunits.dat 
+elif [[ $lev -eq "Slp" ]];then
+fCMP=../cmp/${lev}.$d.${yr}.cmp
+read_nc2cmp_new  -i temp.nc -o $fCMP -d "lon,lat,time" \
+-u slp -s 0.01  -v SLP -U MB -r NCEP -g "2.5x2.5DEG" -p /home/keay/bin/udunits.dat 
+fi
+rm temp.nc ${dNC}${fNC}\3
+#gzip $fNC
+
+fi
+:
+exit

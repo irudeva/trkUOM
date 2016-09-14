@@ -1,0 +1,151 @@
+#!/bin/csh -f
+
+echo "Start run-cyc 0"
+echo $#argv
+ if ($#argv == 0) then
+   echo "Usage: run-cyc.$d.year yyyy e.g 1998"
+   exit
+ else
+   set d=$1
+   set y=$2
+   set lev=$3
+ endif
+
+echo "Start run-cyc"
+
+alias edcyc3=/work/keay/bin/edcyc3
+
+
+# Location of MSLP CMP files
+
+## set CMPDIR = /work9/kevin/$d/mslp
+## set CMPDIR = /work5/kevin/$d/data/${lev}
+ set CMPDIR = "../cmp/" 
+
+# Set up limits for current year with extra months to form DJF;
+# allow 15 days extension for cyclogenesis/lysis
+ @ yp = ($y - 1)
+ @ yn = ($y + 1)
+
+echo "y,yp,yn: "$y $yp $yn
+set ileapp = `getleap $yp`
+echo "ileapp: "$ileapp
+ @ dp = 365
+ if ($ileapp == 1) then
+   @ dp = 366
+ endif
+
+ @ m1p = (($dp - 61) * 4 - 3)
+ @ m2p = ($dp * 4)
+
+ @ m1n = (1 * 4 - 3)
+ @ m2n = (31 * 4)
+
+# Form CMP file for extended year
+# Note: splitcon2 -M option
+
+ if -e $CMPDIR/${lev}.$d.$yp.cmp then 
+   splitcon2 -l -n -M "$m1p,$m2p" $CMPDIR/${lev}.$d.$yp.cmp
+ endif
+ splitcon2 -l -n $CMPDIR/${lev}.$d.$y.cmp
+ if -e $CMPDIR/${lev}.$d.$yn.cmp then 
+   splitcon2 -l -n -M "$m1n,$m2n" $CMPDIR/${lev}.$d.$yn.cmp
+ endif
+# Break up cat since too many arguments
+ if ($y > 1979) then  # 1979 is first available year
+   cat ${lev}.$d.${yp}*cmp >! ${lev}.cmp
+   cat ${lev}.$d.${y}*cmp >> ${lev}.cmp
+   cat ${lev}.$d.${yn}*cmp >> ${lev}.cmp
+ else
+   cat ${lev}.$d.${y}*cmp >! ${lev}.cmp
+   cat ${lev}.$d.${yn}*cmp >> ${lev}.cmp
+ endif
+# Break up rm since too many arguments
+ \rm -f ${lev}.$d.${yp}*cmp
+ \rm -f ${lev}.$d.${y}*cmp
+ \rm -f ${lev}.$d.${yn}*cmp
+
+ if ($y == 2000) then
+# Assume 2000 -> 20
+   set dastrt = 191101
+   set dastop = 210131
+ else if ($y == 1999) then
+# Assume 2000 -> 20
+   set dastrt = 181101
+   set dastop = 200131
+ else if ($y < 1999) then
+   @ y1 = ($yp - 1900)
+   @ y2 = ($yn - 1900)
+   set dastrt = ${y1}1101
+   set dastop = ${y2}0131
+ else if ($y > 2000) then
+   @ y1 = ($yp - 2000)
+   @ y2 = ($yn - 2000)
+   set dastrt = ${y1}1101
+   set dastop = ${y2}0131
+#   set dastop = ${y}0630
+ endif
+
+# Special processing for 1999 and 2000
+# 2000 -> 20
+
+ if ($y == 1999 || $y == 2000) then
+   splitcon -n -l ${lev}.cmp
+   \rm -f ${lev}.cmp
+   foreach f (${lev}.$d.1?????????.cmp)
+     cycadjtime -y -1980 -i $f
+   end
+   foreach f (${lev}.$d.2?????????.cmp)
+     cycadjtime -y -1980 -i $f
+   end
+   if ($y == 1999) then
+     cat ${lev}.$d.0018??????.cmp >! ${lev}_${y}.cmp
+     cat ${lev}.$d.0019??????.cmp >> ${lev}_${y}.cmp
+     cat ${lev}.$d.0020??????.cmp >> ${lev}_${y}.cmp
+     \rm -f ${lev}.$d.0018??????.cmp
+     \rm -f ${lev}.$d.0019??????.cmp
+     \rm -f ${lev}.$d.0020??????.cmp
+     \rm -f ${lev}.$d.1998??????.cmp
+     \rm -f ${lev}.$d.1999??????.cmp
+     \rm -f ${lev}.$d.2000??????.cmp
+   else
+     cat ${lev}.$d.0019??????.cmp >! ${lev}_${y}.cmp
+     cat ${lev}.$d.0020??????.cmp >> ${lev}_${y}.cmp
+     cat ${lev}.$d.0021??????.cmp >> ${lev}_${y}.cmp
+     \rm -f ${lev}.$d.0019??????.cmp
+     \rm -f ${lev}.$d.0020??????.cmp
+     \rm -f ${lev}.$d.0021??????.cmp
+     \rm -f ${lev}.$d.1999??????.cmp
+     \rm -f ${lev}.$d.2000??????.cmp
+     \rm -f ${lev}.$d.2001??????.cmp
+   endif
+   \mv ${lev}_${y}.cmp ${lev}.cmp
+ endif
+
+## Move temporary MSLP file to /tmp (faster?)
+ \mv ${lev}.cmp /tmp
+
+# Update incycloc.cur dastrt,dastop parameters
+ echo "dastrt, dastop: "$dastrt $dastop
+ sed -e "s/DASTRT/$dastrt/" incycloc.$d.template | sed -e "s/DASTOP/$dastop/" >! incycloc.cur
+
+# Find cyclone positions 
+ echo "cyclocx"
+ cyclocx.hr -i incycloc.cur -c /tmp/cycdat.$d.$y -z ../../topo/zs.$d.cmp /tmp/${lev}.cmp 
+
+# Move cycdat file from /tmp to current directory
+ \mv /tmp/cycdat.$d.$y .
+
+# Remove temporary MSLP file
+ \rm -f /tmp/${lev}.cmp
+
+# Ensure that all systems haev DP > 0.1 hPa
+ echo "edcyc3"
+ edcyc3 -c cycdat.$d.$y -i inedcyc -o edcyc -a "dp 0.1" 
+ mv edcyc ../cycloc/cycdat.${lev}.$d.$y 
+ rm cycdat.$d.$y
+
+# cleanup
+ rm edcyc.dbg fort.4 incycloc.cur
+
+exit

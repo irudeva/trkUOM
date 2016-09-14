@@ -1,0 +1,22 @@
+ &nmltrangp ni=75, nj=75, hemis='G', rproj=37., dmode='YMDHM',
+            rdiff=2.0, rdifz=2.0
+ &end
+
+ &nmlcycloc ddhmmn=000600, ddhmmx=000600,
+            dastrt=DASTRT, dastop=DASTOP, hrstrt=0000, hrstop=1800,
+            latmnc=-90., latmxc=90., iopmxc=1, istmxc=11, nshell=8, sdrmx=10.,
+            drmx1=0.7, drmx2=0.3, itmx1=20, itmx2=20, diflt1=4.,diflt2=2.,
+            cmnh=0.0, cmnc0=0.0, cmnc1=0.2, cmnc2=0.2, dpmn=0.1, swvmn=0.00,
+            fccmn=0.5, cvarad=2.0, itabc2=2, itabc3=4, itabc4=1,
+            nrddir=18, rdincr=0.5, sphtrg=.false., 
+            rdpgrd=5., npgdir=12, alatgv=8., rhoa=1.2, upfact=1.,
+            zsmax=1000., zscr1=200., zscr2=1000., ftopeq=0.01,
+            cmncw=0.7, dpmnw=-999., swvmnw=0.00, 
+            icendp=2,
+ &end
+
+# Reanalysis: ERA-Interim  Level: MSLP
+
+# Set dpmn=0.1 to avoid cases where dpmn= 0 with a regional grid
+# -z option should be used to control steering velocity calculation
+
