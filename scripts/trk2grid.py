@@ -407,8 +407,8 @@ for yr in range(2005,2006):
             # record netcdf file
 
             #find the closest grid value to the cyclone center
-            clon[ntrk-1,n] = 1 # test
-            clat[ntrk-1,n] = 89.  #test!
+            #clon[ntrk-1,n] = 1 # test
+            #clat[ntrk-1,n] = 89.  #test!
 
             if clon[ntrk-1,n] < 0:
                  clon[ntrk-1,n]=clon[ntrk-1,n]+360
@@ -429,6 +429,9 @@ for yr in range(2005,2006):
                 cdist_pole = (90 - clat[ntrk-1,n])*deg
             else :
                 cdist_pole = (90 + clat[ntrk-1,n])*deg
+
+            print 'cyclone at ', ilat,ilon
+            print 'dist_pole', cdist_pole
 
             for nlat in np.arange(ilat,ilat+10) :
                 if nlat <= len(lats)-1 :
@@ -462,7 +465,7 @@ for yr in range(2005,2006):
                                 print " // +- ", nlat, nnlon
                                 # cdist = dist(lats[nlat],lons[nnlon],clat[ntrk-1,n],clon[ntrk-1,n])
                                 cdist = dist(lats[nlat],lons[nnlon],lats[ilat],lons[ilon])
-                                print cdist,cycrad
+                                # print cdist,cycrad
                                 if cdist <= cycrad :
                                     print " +- ", nlat, nnlon
                                     cycgrd[nnlon,nlat,ctime[ntrk-1,n]] = cycgrd[nnlon,nlat,ctime[ntrk-1,n]] + 1
@@ -483,13 +486,13 @@ for yr in range(2005,2006):
                     # cdist1 = np.absolute(lats[nlat] - clat[ntrk-1,n])*deg
                     cdist1 = np.absolute(lats[nlat] - lats[ilat])*deg
                     if cdist1 <= cycrad :
-                        for nlon in np.arange(ilon+1,ilon+len(lons)-1) :
+                        for nlon in np.arange(ilon,ilon+len(lons)-1) :
                             nnlon = nlon
                             if nlon >= len(lons):
                                 nnlon = nlon - len(lons)
                             print " // -+ ", nlat,nnlon
                             cdist = dist(lats[nlat],lons[nnlon],clat[ntrk-1,n],clon[ntrk-1,n])
-                            print cdist,cycrad
+                            # print cdist,cycrad
                             if cdist <= cycrad :
                                 print " -+ ", nlat, nnlon
                                 cycgrd[nnlon,nlat,ctime[ntrk-1,n]] = cycgrd[nnlon,nlat,ctime[ntrk-1,n]] + 1
@@ -504,7 +507,7 @@ for yr in range(2005,2006):
                                 #     nnlon = nlon + len(lons)
                                 print " // -- ", nlat,nnlon
                                 cdist = dist(lats[nlat],lons[nnlon],clat[ntrk-1,n],clon[ntrk-1,n])
-                                print cdist,cycrad
+                                # print cdist,cycrad
                                 if cdist <= cycrad :
                                     print " -- ", nlat, nnlon
                                     cycgrd[nnlon,nlat,ctime[ntrk-1,n]] = cycgrd[nnlon,nlat,ctime[ntrk-1,n]] + 1
@@ -513,13 +516,6 @@ for yr in range(2005,2006):
                                     break
                     else :
                         print "dist along longitude > cycdist => no need to check 2"
-                        print cdist1, cycrad
-                        if cdist1 == cycrad :
-                            print " == "
-                        else :
-                            print " != "
-                            print cdist1 - cycrad
-                        print nlat,ilat
                         break #dist along longitude > cycdist => no need to check
                 else :
                     print "out of bounds"
@@ -884,7 +880,7 @@ ncout.description = "Cyclone number from  %s" % (ftrk)
 # Using our previous dimension info, we can create the new time dimension
 # Even though we know the size, we are going to set the size to unknown
 
-dimnam=('lon','lat,'time')
+dimnam=('lon','lat','time')
 varnam=['longitude','latitude','time',ncvar]
 
 ncout.createDimension(dimnam[0], lons.size)
@@ -907,7 +903,7 @@ ncout_var = ncout.createVariable(varnam[nv], 'f',dimnam[nv])
 if varnam[nv] == 'longitude' :
     ncout_var.long_name = varnam[nv]
     ncout_var.units = 'degrees_east'
-    ncout.variables[dimnam[0]][:] = lons
+    ncout.variables[varnam[nv]][:] = lons
 
  #lats
 nv=1
@@ -915,7 +911,7 @@ ncout_var = ncout.createVariable(varnam[nv], 'f',dimnam[nv])
 if varnam[nv] == 'latitude' :
     ncout_var.long_name = varnam[nv]
     ncout_var.units = 'degrees_north'
-    ncout.variables[dimnam[1]][:] = lats
+    ncout.variables[varnam[nv]][:] = lats
 
  #time
 nv=2
@@ -926,7 +922,7 @@ if varnam[nv] == 'time' :
     ncout_var.units = 'hours since 1900-01-01 00:00:0.0'
     #for one time step - test!
     tdelta =  datetime.datetime(cyr[ntrk-1,n],cmon[ntrk-1,n],cdate[ntrk-1,n],chour[ntrk-1,n]) - datetime.datetime(1900, 1, 1, 0)
-    ncout.variables[dimnam[2]][:] = divmod(tdelta.total_seconds(),3600)[0]
+    ncout.variables[varnam[nv]][:] = divmod(tdelta.total_seconds(),3600)[0]
 
 
 print cycgrd[:,:,:].shape
@@ -945,7 +941,7 @@ ncout_var.long_name = 'number of cylones'
 #print qx.shape
 #print ncout_var.shape
 # ncout_var[:,:,:] = np.swapaxes(gridcyc,0,2)
-ncout_var[0,:,:] = cycgrd[:,:,0]
+ncout_var[:,:,:] = np.swapaxes(cycgrd[:,:,:],0,2)
 
 ncout.close()
 
