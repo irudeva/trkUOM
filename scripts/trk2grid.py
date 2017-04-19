@@ -322,7 +322,7 @@ for yr in range(2005,2006):
     #read trk
 
     print 'ftrk reading:'
-    max_ntrk =  1000 #20000
+    max_ntrk =  505 #20000
     max_trklength = 200
     npnt  = np.zeros(max_ntrk,dtype = np.int)
     clon  = np.zeros((max_ntrk,max_trklength))
@@ -408,6 +408,8 @@ for yr in range(2005,2006):
 
             #find the closest grid value to the cyclone center
             clon[ntrk-1,n] = 1 # test
+            clat[ntrk-1,n] = 89.  #test!
+
             if clon[ntrk-1,n] < 0:
                  clon[ntrk-1,n]=clon[ntrk-1,n]+360
             ilon = find_nearest(lons,clon[ntrk-1,n])
@@ -418,163 +420,231 @@ for yr in range(2005,2006):
             #circle around cyc center
             # TO DO!!! add lons>360,lat>90...
 
-            print ilat,ilon
+            #check if cyclone area is close to poles
+            # cdist1 = dist(90,0,clat[ntrk-1,n],clon[ntrk-1,n])
+            # cdist2 = dist(-90,0,clat[ntrk-1,n],clon[ntrk-1,n])
+            # print cdist1
+            # cdist_pole = np.amin([cdist1,cdist2])
+            if clat[ntrk-1,n] >= 0 :
+                cdist_pole = (90 - clat[ntrk-1,n])*deg
+            else :
+                cdist_pole = (90 + clat[ntrk-1,n])*deg
 
-            for nlat in np.arange(ilat+1,ilat+10) :
-                # print 'nlat=',nlat
-                for nlon in np.arange(ilon+1,ilon+10) :
-                    nnlon = nlon
-                    if nlon >= len(lons):
-                        nnlon = nlon - len(lons)
-                        # print lons[nnlon]
-                    # print 'nlon=',nlon
-                    if dist(lats[nlat],lons[nnlon],clat[ntrk-1,n],clon[ntrk-1,n]) <= cycrad :
-                        print " ++ ", nlat, nlon
-                        cycgrd[nlon,nlat,ctime[ntrk-1,n]] = cycgrd[nlon,nlat,ctime[ntrk-1,n]] + 1
-                for nlon in np.arange(ilon-1,ilon-10,-1) :
-                    nnlon = nlon
-                    if nlon <0 :
-                        nnlon = nlon + len(lons)
-                    if dist(lats[nlat],lons[nnlon],clat[ntrk-1,n],clon[ntrk-1,n]) <= cycrad :
-                        print " +- ", nlat, nlon
-                        cycgrd[nlon,nlat,ctime[ntrk-1,n]] = cycgrd[nlon,nlat,ctime[ntrk-1,n]] + 1
-            for nlat in np.arange(ilat-1,ilat-10,-1) :
-                for nlon in np.arange(ilon+1,ilon+10) :
-                    nnlon = nlon
-                    if nlon >= len(lons):
-                        nnlon = nlon - len(lons)
-                    if dist(lats[nlat],lons[nlon],clat[ntrk-1,n],clon[ntrk-1,n]) <= cycrad :
-                        print " -+ ", nlat, nlon
-                        cycgrd[nlon,nlat,ctime[ntrk-1,n]] = cycgrd[nlon,nlat,ctime[ntrk-1,n]] + 1
-                for nlon in np.arange(ilon-1,ilon-10,-1) :
-                    nnlon = nlon
-                    if nlon <0 :
-                        nnlon = nlon + len(lons)
-                    if dist(lats[nlat],lons[nnlon],clat[ntrk-1,n],clon[ntrk-1,n]) <= cycrad :
-                        print " -- ", nlat, nlon
-                        cycgrd[nlon,nlat,ctime[ntrk-1,n]] = cycgrd[nlon,nlat,ctime[ntrk-1,n]] + 1
-
-
-
-            quit()
-
-
-
-
-
-
-
-
-
-            # start radius estimation
-            plon = [lon[ntrk-1,n]]
-            plat = [lat[ntrk-1,n]]
-
-            #find the closest grid value to the cyclone center
-            iplon = find_nearest(lons,plon[0])
-            iplat = find_nearest(lats,plat[0])
-
-            iplon0 = iplon
-            iplat0 = iplat
-            #
-            # print "initial iplon,iplat = ", iplon,iplat
-
-            #check if it is a local minimum
-
-            # create an extended array
-            slpext = np.zeros((lats.size+4,lons.size+4))
-            slpext[2:-2,2:-2] = slp[iyr[ntrk-1,n],it[ntrk-1,n],:,:]
-
-
-            slpext[:,:2] = slpext[:,-4:-2]
-            slpext[:,-2:] = slpext[:,2:4]
-
-
-            lon180 = np.where(lons==180)[0]
-
-            slpext[1,2:lon180+2] = [slpext[3,ii] for ii in range(lon180+2,lons.size+2)]
-            slpext[0,2:lon180+2] = [slpext[4,ii] for ii in range(lon180+2,lons.size+2)]
-
-            slpext[1,lon180+2:-2] = [slpext[3,ii] for ii in range(2,lon180+2)]
-            slpext[0,lon180+2:-2] = [slpext[4,ii] for ii in range(2,lon180+2)]
-
-            slpext[:2,:2] = slpext[:2,-4:-2]
-            slpext[:2,-2:] = slpext[:2,2:4]
-
-            # check if cyclone center is a loc min
-
-            # slp16 = slp[iyr[ntrk-1,n],it[ntrk-1,n],iplat-2:iplat+3,plon_g-2:plon_g+3]
-
-            #fix iplat and iplon for the extended slp matrix
-            iplatext = iplat+2
-            iplonext = iplon+2
-            slp16 = slpext[iplatext-2:iplatext+3,iplonext-2:iplonext+3]
-
-            print slp16
-
-            locmin = local_minima(slp16)
-            print locmin
-
-            #check if the central point is a loc min
-            if locmin[2,2]:
-                print 'good to go - the center is in the right place'
-            # check if one of the 8 surrounding points is a loc min
-            else:
-                nmin = np.count_nonzero(locmin[1:4,1:4])
-                if nmin == 1 :
-                    locmin2 = np.where(locmin[1:4,1:4])
-                    iplonext = iplonext-1+locmin2[1][0]
-                    iplatext = iplatext-1+locmin2[0][0]
-                #if there are 2 loc mins within the surrounding 8 points take the slp min
-                elif nmin == 2 :
-                    locmin2 = np.where(locmin[1:4,1:4])
-                    iplonext1 = iplonext-1+locmin2[1][0]
-                    iplatext1 = iplatext-1+locmin2[0][0]
-                    iplonext2 = iplonext-1+locmin2[1][1]
-                    iplatext2 = iplatext-1+locmin2[0][1]
-                    # if slp[iyr[ntrk-1,n],it[ntrk-1,n],iplat,iplon]>slp[iyr[ntrk-1,n],it[ntrk-1,n],iplat1,iplon1] :
-                    if slpext[iplatext2,iplonext2]>slpext[iplatext1,iplonext1] :
-                        iplonext = iplonext1
-                        iplatext = iplatext1
-                    else:
-                        iplonext = iplonext2
-                        iplatext = iplatext2
+            for nlat in np.arange(ilat,ilat+10) :
+                if nlat <= len(lats)-1 :
+                    # cdist = dist(lats[nlat],lons[ilon],clat[ntrk-1,n],clon[ntrk-1,n])
+                    cdist1 = np.absolute(lats[nlat] - clat[ntrk-1,n])*deg
+                        # print 'nlat=',nlat
+                    if cdist1 <= cycrad :
+                        for nlon in np.arange(ilon,ilon+len(lons)-1) :
+                            if nlat == ilat and nlon == ilon:
+                                continue
+                            nnlon = nlon
+                            if nlon >= len(lons):
+                                nnlon = nlon - len(lons)
+                                # print lons[nnlon]
+                            # print 'nnlon=',nnlon
+                            print " // ++ ", nlat,nnlon
+                            cdist = dist(lats[nlat],lons[nnlon],clat[ntrk-1,n],clon[ntrk-1,n])
+                            print cdist,cycrad
+                            if cdist <= cycrad :
+                                print " ++ ", nlat, nnlon
+                                cycgrd[nnlon,nlat,ctime[ntrk-1,n]] = cycgrd[nnlon,nlat,ctime[ntrk-1,n]] + 1
+                            else :
+                                if cdist_pole > cycrad:
+                                    print 'break'
+                                    break
+                        if cdist_pole > cycrad :
+                            for nlon in np.arange(ilon-1,ilon-len(lons)+1,-1) :
+                                nnlon = nlon
+                                # if nlon <0 :
+                                #     nnlon = nlon + len(lons)
+                                print " // +- ", nlat, nnlon
+                                # cdist = dist(lats[nlat],lons[nnlon],clat[ntrk-1,n],clon[ntrk-1,n])
+                                cdist = dist(lats[nlat],lons[nnlon],lats[ilat],lons[ilon])
+                                print cdist,cycrad
+                                if cdist <= cycrad :
+                                    print " +- ", nlat, nnlon
+                                    cycgrd[nnlon,nlat,ctime[ntrk-1,n]] = cycgrd[nnlon,nlat,ctime[ntrk-1,n]] + 1
+                                else :
+                                    print 'break'
+                                    break
+                    else :
+                        print "dist along longitude > cycdist => no need to check 1 "
+                        break #dist along longitude > cycdist => no need to check
                 else :
-                    print '!!!! ERROR: No loc min around the cyclone center, nmin =', nmin, "time step =",n,"/",nit
-                    miss   = -99.9
-                    cglon  = miss
-                    cglat  = miss
-                    cgslp  = miss
-                    fslp   = miss
-                    effrad = miss
-                    fout.write(" {:>14}{:8.3f}{:>7} {:7.3f}{:>7} {:7.3f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format
-                              ("cglon=",lons[iplon],"cglat=",lats[iplat],"cgslp=",cgslp,"fslp=",fslp,"effrad=",effrad))
-                    fout.write(" {:>14}{:7.3f}\n".format("effrad=",effrad))
-                    continue
+                    print "out of bounds"
+                    break #out of bounds
 
-            iplon = iplonext - 2
-            iplat = iplatext - 2
+            for nlat in np.arange(ilat-1,ilat-10,-1) :
+                if nlat >= 0:
+                    # cdist = dist(lats[nlat],lons[ilon],clat[ntrk-1,n],clon[ntrk-1,n])
+                    # cdist1 = dist(lats[nlat],lons[ilon],lats[ilat],lons[ilon])
+                    # cdist1 = np.absolute(lats[nlat] - clat[ntrk-1,n])*deg
+                    cdist1 = np.absolute(lats[nlat] - lats[ilat])*deg
+                    if cdist1 <= cycrad :
+                        for nlon in np.arange(ilon+1,ilon+len(lons)-1) :
+                            nnlon = nlon
+                            if nlon >= len(lons):
+                                nnlon = nlon - len(lons)
+                            print " // -+ ", nlat,nnlon
+                            cdist = dist(lats[nlat],lons[nnlon],clat[ntrk-1,n],clon[ntrk-1,n])
+                            print cdist,cycrad
+                            if cdist <= cycrad :
+                                print " -+ ", nlat, nnlon
+                                cycgrd[nnlon,nlat,ctime[ntrk-1,n]] = cycgrd[nnlon,nlat,ctime[ntrk-1,n]] + 1
+                            else :
+                                if cdist_pole > cycrad:
+                                    print 'break'
+                                    break
+                        if cdist_pole > cycrad :
+                            for nlon in np.arange(ilon-1,ilon-len(lons)+1,-1) :
+                                nnlon = nlon
+                                # if nlon < 0 :
+                                #     nnlon = nlon + len(lons)
+                                print " // -- ", nlat,nnlon
+                                cdist = dist(lats[nlat],lons[nnlon],clat[ntrk-1,n],clon[ntrk-1,n])
+                                print cdist,cycrad
+                                if cdist <= cycrad :
+                                    print " -- ", nlat, nnlon
+                                    cycgrd[nnlon,nlat,ctime[ntrk-1,n]] = cycgrd[nnlon,nlat,ctime[ntrk-1,n]] + 1
+                                else :
+                                    print 'break'
+                                    break
+                    else :
+                        print "dist along longitude > cycdist => no need to check 2"
+                        print cdist1, cycrad
+                        if cdist1 == cycrad :
+                            print " == "
+                        else :
+                            print " != "
+                            print cdist1 - cycrad
+                        print nlat,ilat
+                        break #dist along longitude > cycdist => no need to check
+                else :
+                    print "out of bounds"
+                    break #out of bounds
 
-            if iplon >= lons.size :
-                iplon = iplon - lons.size
-            if iplon < 0 :
-                iplon = iplon + lons.size
+            print cyr[ntrk-1,n],cmon[ntrk-1,n],cdate[ntrk-1,n],chour[ntrk-1,n], n, ntrk
 
-            if iplat < 0 :
-                iplat = -iplat
-                iplon = iplon + 180
-                if iplon >= lons.size:
-                     iplon = iplon - lons.size
-            if iplat >= lats.size :
-                iplat = 2*lats.size-iplat
-                iplon = iplon + 180
-                if iplon >= lons.size:
-                     iplon = iplon - lons.size
+            break #test - first cyclone onto the grid
+    # print cyr[ntrk-1,n],cmon[ntrk-1,n],cdate[ntrk-1,n],chour[ntrk-1,n], n, ntrk
+    # quit()
+    #
+    # break #test - first cyclone onto the grid
 
-            print "initial cyc center slp= ", slp[iyr[ntrk-1,n],it[ntrk-1,n],iplat0,iplon0]
-            print "grid    cyc center slp= ", slp[iyr[ntrk-1,n],it[ntrk-1,n],iplat,iplon]
-            print "initial iplat =",iplat0,"final iplon=",iplon0
-            print "grid iplat =",iplat,"final plon=",iplon
+
+            #
+            #
+            # # start radius estimation
+            # plon = [lon[ntrk-1,n]]
+            # plat = [lat[ntrk-1,n]]
+            #
+            # #find the closest grid value to the cyclone center
+            # iplon = find_nearest(lons,plon[0])
+            # iplat = find_nearest(lats,plat[0])
+            #
+            # iplon0 = iplon
+            # iplat0 = iplat
+            # #
+            # # print "initial iplon,iplat = ", iplon,iplat
+            #
+            # #check if it is a local minimum
+            #
+            # # create an extended array
+            # slpext = np.zeros((lats.size+4,lons.size+4))
+            # slpext[2:-2,2:-2] = slp[iyr[ntrk-1,n],it[ntrk-1,n],:,:]
+            #
+            #
+            # slpext[:,:2] = slpext[:,-4:-2]
+            # slpext[:,-2:] = slpext[:,2:4]
+            #
+            #
+            # lon180 = np.where(lons==180)[0]
+            #
+            # slpext[1,2:lon180+2] = [slpext[3,ii] for ii in range(lon180+2,lons.size+2)]
+            # slpext[0,2:lon180+2] = [slpext[4,ii] for ii in range(lon180+2,lons.size+2)]
+            #
+            # slpext[1,lon180+2:-2] = [slpext[3,ii] for ii in range(2,lon180+2)]
+            # slpext[0,lon180+2:-2] = [slpext[4,ii] for ii in range(2,lon180+2)]
+            #
+            # slpext[:2,:2] = slpext[:2,-4:-2]
+            # slpext[:2,-2:] = slpext[:2,2:4]
+            #
+            # # check if cyclone center is a loc min
+            #
+            # # slp16 = slp[iyr[ntrk-1,n],it[ntrk-1,n],iplat-2:iplat+3,plon_g-2:plon_g+3]
+            #
+            # #fix iplat and iplon for the extended slp matrix
+            # iplatext = iplat+2
+            # iplonext = iplon+2
+            # slp16 = slpext[iplatext-2:iplatext+3,iplonext-2:iplonext+3]
+            #
+            # print slp16
+            #
+            # locmin = local_minima(slp16)
+            # print locmin
+            #
+            # #check if the central point is a loc min
+            # if locmin[2,2]:
+            #     print 'good to go - the center is in the right place'
+            # # check if one of the 8 surrounding points is a loc min
+            # else:
+            #     nmin = np.count_nonzero(locmin[1:4,1:4])
+            #     if nmin == 1 :
+            #         locmin2 = np.where(locmin[1:4,1:4])
+            #         iplonext = iplonext-1+locmin2[1][0]
+            #         iplatext = iplatext-1+locmin2[0][0]
+            #     #if there are 2 loc mins within the surrounding 8 points take the slp min
+            #     elif nmin == 2 :
+            #         locmin2 = np.where(locmin[1:4,1:4])
+            #         iplonext1 = iplonext-1+locmin2[1][0]
+            #         iplatext1 = iplatext-1+locmin2[0][0]
+            #         iplonext2 = iplonext-1+locmin2[1][1]
+            #         iplatext2 = iplatext-1+locmin2[0][1]
+            #         # if slp[iyr[ntrk-1,n],it[ntrk-1,n],iplat,iplon]>slp[iyr[ntrk-1,n],it[ntrk-1,n],iplat1,iplon1] :
+            #         if slpext[iplatext2,iplonext2]>slpext[iplatext1,iplonext1] :
+            #             iplonext = iplonext1
+            #             iplatext = iplatext1
+            #         else:
+            #             iplonext = iplonext2
+            #             iplatext = iplatext2
+            #     else :
+            #         print '!!!! ERROR: No loc min around the cyclone center, nmin =', nmin, "time step =",n,"/",nit
+            #         miss   = -99.9
+            #         cglon  = miss
+            #         cglat  = miss
+            #         cgslp  = miss
+            #         fslp   = miss
+            #         effrad = miss
+            #         fout.write(" {:>14}{:8.3f}{:>7} {:7.3f}{:>7} {:7.3f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format
+            #                   ("cglon=",lons[iplon],"cglat=",lats[iplat],"cgslp=",cgslp,"fslp=",fslp,"effrad=",effrad))
+            #         fout.write(" {:>14}{:7.3f}\n".format("effrad=",effrad))
+            #         continue
+            #
+            # iplon = iplonext - 2
+            # iplat = iplatext - 2
+            #
+            # if iplon >= lons.size :
+            #     iplon = iplon - lons.size
+            # if iplon < 0 :
+            #     iplon = iplon + lons.size
+            #
+            # if iplat < 0 :
+            #     iplat = -iplat
+            #     iplon = iplon + 180
+            #     if iplon >= lons.size:
+            #          iplon = iplon - lons.size
+            # if iplat >= lats.size :
+            #     iplat = 2*lats.size-iplat
+            #     iplon = iplon + 180
+            #     if iplon >= lons.size:
+            #          iplon = iplon - lons.size
+            #
+            # print "initial cyc center slp= ", slp[iyr[ntrk-1,n],it[ntrk-1,n],iplat0,iplon0]
+            # print "grid    cyc center slp= ", slp[iyr[ntrk-1,n],it[ntrk-1,n],iplat,iplon]
+            # print "initial iplat =",iplat0,"final iplon=",iplon0
+            # print "grid iplat =",iplat,"final plon=",iplon
 
 
             # if np.abs(iplat-iplat0)>1 or (np.abs(iplon-iplon0)>1 and np.abs(iplat-iplat0)<359):
@@ -597,197 +667,197 @@ for yr in range(2005,2006):
             # grid around cyclone center
             # dlon = 10
             # dlat = 0.5
-            dlon = 20
-            dlat = 1.
-            lonrange = np.arange(0., 360., dlon)
-            # latrange = np.arange(90., 64.5, -dlat)
-            latrange = np.arange(90., 64., -dlat)
-
-            rslp     = np.zeros_like(latrange)
-            dslp     = np.zeros_like(latrange[:-1])
-            lslp     = np.zeros_like(lonrange)
-            flslp    = np.copy(lslp)
-            flat     = np.copy(lslp)
-            flon     = np.copy(lslp)
-            rad      = np.copy(lslp)
-
-            nlon     = np.zeros((latrange.size,lonrange.size))
-            nlat     = np.zeros_like(nlon)
-
-            mr = 2  # min radius = mr*dlat (deg.lat)
-
-            for i,ilon in enumerate(lonrange) :
-                #  print "t=",n,"/",nit,"   ilon=",ilon
-
-                 gridlat = np.copy(latrange)
-                 gridlon = np.zeros_like(gridlat)+ilon
-
-                #  nlat[:,i], nlon[:,i] = rotated_grid_transform(plat[0],plon[0],gridlat,gridlon,2)
-                 nlat[:,i], nlon[:,i] = rotated_grid_transform(lats[iplat],lons[iplon],gridlat,gridlon,2)
-
-                 for j in range(nlon[:,i].size):
-                     if nlon[j,i] < 0:
-                         nlon[j,i] = nlon[j,i]+360.
-
-                 slpint = interpolate.interp2d(lons, lats, slp[iyr[ntrk-1,n],it[ntrk-1,n],:,:], kind='cubic')
-
-                 for j,jlat in enumerate(latrange[:-1]) :
-                     rslp[j] = slpint(nlon[j,i],nlat[j,i])[0]
-                     dslp[j] = slpint(nlon[j+1,i],nlat[j+1,i]) - slpint(nlon[j,i],nlat[j,i])
-
-                #  print rslp
-
-                #  if any(dslp[0:mr-1]) < 0. :
-                #      print "!!!! slp bug"
-                #      print dslp
-                #     #  ftime.sleep(20)
-                #      quit()
-
-                 for j in range(mr,latrange.size-1):
-                     if dslp[j] < 0 or j == latrange.size-2:
-                         lslp[i] = rslp[j]
-                        #  fout.write(" {:>14}{:4.0f}{:>5}{:8.3f}{:>5} {:7.3f}{:>5} {:4.1f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format("angle=",ilon,"lon=",nlon[j+1,i],"lat=",nlat[j+1,i],"rad=",(j+1)*dlat,"cslp=",slp0[0],"fslp=",lslp[i]))
-                        #  ftime.sleep(10)
-                         break
-
-
-            # find the last closed isobar (fslp)
-            fslp = np.amin(lslp)
-            cgslp = slp[iyr[ntrk-1,n],it[ntrk-1,n],iplat,iplon]
-            cycdepth = fslp-cgslp
-
-            # set rad = 0 for weak cyclones
-            if cycdepth >= 0.5 :
-                # find where last closed isobar fslp cross each radius
-                gridlat = np.copy(latrange)
-                for i,ilon in enumerate(lonrange) :
-                    for j in range(mr,latrange.size-1):
-                     slp2 = slpint(nlon[j+1,i],nlat[j+1,i])[0]
-                     slp1 = slpint(nlon[j,i],nlat[j,i])[0]
-
-                     if slp1 <= fslp and slp2 > fslp :
-                        rad[i] = j*dlat + (fslp-slp1)/(slp2-slp1)*dlat
-                        # flat[i], flon[i] = rotated_grid_transform(plat[0],plon[0],[90-rad[i]],[ilon],2)
-                        flat[i], flon[i] = rotated_grid_transform(lats[iplat],lons[iplon],[90-rad[i]],[ilon],2)
-                        if flon[i] < 0:
-                            flon[i] = flon[i]+360
-                        # print "flat=",flat, "flon=",flon
-                        flslp[i] = slpint(flon[0],flat[0])[0]
-                        #  fout.write(" {:>14}{:4.0f}{:>5}{:8.3f}{:>5} {:7.3f}{:>5} {:7.3f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format("angle=",ilon,"lon=",flon[0],"lat=",flat[0],"rad=",rad[i],"cslp=",slp0[0],"fslp=",flslp[i]))
-                        break
-
-                     if j == latrange.size-1:
-                        if slpint(nlon[mr,i],nlat[mr,i])[0] > fslp :
-                            rad[i] = mr*dlat
-                            # flat[i], flon[i] = rotated_grid_transform(plat[0],plon[0],rad[i],[ilon],2)
-                            flat[i], flon[i] = rotated_grid_transform(lat[iplat],lons[iplon],rad[i],[ilon],2)
-                            if flon[i] < 0:
-                                flon[i] = flon[i]+360
-                            flslp[i] = slpint(flon[0],flat[0])[0]
-                            #  fout.write(" {:>14}{:4.0f}{:>5}{:8.3f}{:>5} {:7.3f}{:>5} {:7.3f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format("angle=",ilon,"lon=",flon[0],"lat=",flat[0],"rad=",rad[i],"cslp=",slp0[0],"fslp=",flslp[i]))
-                        elif slpint(nlon[j],nlat[j])[0] < fslp :
-                            print "!!!! fslp bug"
-                            print fslp, slpint(nlon[j],nlat[j])[0]
-                            #  ftime.sleep(20)
-                            quit()
-
-                    # fout.write(" {:>14}{:4.0f}{:>5}{:8.3f}{:>5} {:7.3f}{:>5} {:7.3f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format
-                    #           ("angle=",ilon,"lon=",flon[i],"lat=",flat[i],"rad=",rad[i],"cslp=",slp0[0],"fslp=",flslp[i]))
-
-
-            else :
-                for i,ilon in enumerate(lonrange) :
-                    rad[i]   = 0
-                    flat[i]  =  plat[0]
-                    flon[i]  =  plon[0]
-                    flslp[i]    = fslp
-                    # fout.write(" {:>14}{:4.0f}{:>5}{:8.3f}{:>5} {:7.3f}{:>5} {:7.3f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format
-                    #           ("angle=",ilon,"lon=",flon[i],"lat=",flat[i],"rad=",rad[i],"cslp=",slp0[0],"fslp=",flslp[i]))
-
-            Area = 0
-            for i,ilon in enumerate(lonrange) :
-                Area = Area + rad[i]**2
-            Area = Area/lonrange.size
-
-            if all(rad) > 0 :
-                effrad = np.sqrt(Area)
-                fout.write(" {:>14}{:8.3f}{:>6} {:7.3f}{:>7} {:7.3f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format
-                          ("cglon=",lons[iplon],"cglat=",lats[iplat],"cgslp=",cgslp,"fslp=",fslp,"effrad=",effrad))
-
-                for i,ilon in enumerate(lonrange) :
-                    fout.write(" {:>14}{:4.0f}{:>5}{:8.3f}{:>5} {:7.3f}{:>5} {:7.3f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format
-                          ("angle=",ilon,"lon=",flon[i],"lat=",flat[i],"rad=",rad[i],"cslp=",cgslp,"fslp=",flslp[i]))
-
-            else:
-                effrad = 0
-                fout.write(" {:>14}{:8.3f}{:>7} {:7.3f}{:>7} {:7.3f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format
-                          ("cglon=",lons[iplon],"cglat=",lats[iplat],"cgslp=",cgslp,"fslp=",fslp,"effrad=",effrad))
-
-           # cyclones onto the regular grid
-
-            print "rad = ",rad
-            print "effrad = ", effrad
-
-            # if effrad != 0 and iyr[ntrk-1,n]==yr:
-            if effrad != 0 :
-
-               maxrad = np.amax(rad)+1
-
-               minlat = lats[iplat]-maxrad
-               if minlat < -90 :
-                   minlat = -90.
-                   j1 = np.where(lats==-90.)[0]
-               else :
-                   j1 = find_nearest(lats,minlat)
-
-               maxlat = plat[0]+maxrad
-               if maxlat > 90 :
-                   maxlat = 90.
-                   j2 = np.where(lats==90.)[0]
-               else :
-                   j2 = find_nearest(lats,maxlat)
-
-               if j1 < j2:
-                   jrange = range(j1,j2+1)
-               else:
-                   jrange = range(j2,j1+1)
-
-               for j in jrange:
-                    for i,ilon in enumerate(lons):
-
-                        # gdist = dist(plat[0],plon[0],lats[j],ilon)
-                        gdist = dist(lats[iplat],lons[iplon],lats[j],ilon)
-                        gdist = gdist/deg
-
-                        if gdist <= maxrad:
-                            # glat, glon = rotated_grid_transform(plat[0],plon[0],[lats[j]],[ilon],1)
-                            glat, glon = rotated_grid_transform(lats[iplat],lons[iplon],[lats[j]],[ilon],1)
-
-                            if glon[0] < 0 :
-                                glon[0] = glon[0] + 360
-
-                            indlon = find_nearest(lonrange,glon[0])
-
-                            if gdist <= rad[indlon] :
-                                gridcyc[it[ntrk-1,n],j,i] = 1
-
-                            # print "to grid:",it[ntrk-1,n],plat[0],plon[0],effrad
-
-            #else:
-                # j = find_nearest(lats,plat[0])
-                # i = find_nearest(lons,plon[0])
-
-                # gridcyc[it[ntrk-1,n],j,i] = 2
-
-                # gridcyc[it[ntrk-1,n],iplat,iplon] = 2
-
-            gridcyc[it[ntrk-1,n],iplat,iplon] = 2
-
-
-            # end radius estimation
-            # break  # for the first step of the track
-
-        # break  # for testing - first tack only
+            # dlon = 20
+        #     dlat = 1.
+        #     lonrange = np.arange(0., 360., dlon)
+        #     # latrange = np.arange(90., 64.5, -dlat)
+        #     latrange = np.arange(90., 64., -dlat)
+        #
+        #     rslp     = np.zeros_like(latrange)
+        #     dslp     = np.zeros_like(latrange[:-1])
+        #     lslp     = np.zeros_like(lonrange)
+        #     flslp    = np.copy(lslp)
+        #     flat     = np.copy(lslp)
+        #     flon     = np.copy(lslp)
+        #     rad      = np.copy(lslp)
+        #
+        #     nlon     = np.zeros((latrange.size,lonrange.size))
+        #     nlat     = np.zeros_like(nlon)
+        #
+        #     mr = 2  # min radius = mr*dlat (deg.lat)
+        #
+        #     for i,ilon in enumerate(lonrange) :
+        #         #  print "t=",n,"/",nit,"   ilon=",ilon
+        #
+        #          gridlat = np.copy(latrange)
+        #          gridlon = np.zeros_like(gridlat)+ilon
+        #
+        #         #  nlat[:,i], nlon[:,i] = rotated_grid_transform(plat[0],plon[0],gridlat,gridlon,2)
+        #          nlat[:,i], nlon[:,i] = rotated_grid_transform(lats[iplat],lons[iplon],gridlat,gridlon,2)
+        #
+        #          for j in range(nlon[:,i].size):
+        #              if nlon[j,i] < 0:
+        #                  nlon[j,i] = nlon[j,i]+360.
+        #
+        #          slpint = interpolate.interp2d(lons, lats, slp[iyr[ntrk-1,n],it[ntrk-1,n],:,:], kind='cubic')
+        #
+        #          for j,jlat in enumerate(latrange[:-1]) :
+        #              rslp[j] = slpint(nlon[j,i],nlat[j,i])[0]
+        #              dslp[j] = slpint(nlon[j+1,i],nlat[j+1,i]) - slpint(nlon[j,i],nlat[j,i])
+        #
+        #         #  print rslp
+        #
+        #         #  if any(dslp[0:mr-1]) < 0. :
+        #         #      print "!!!! slp bug"
+        #         #      print dslp
+        #         #     #  ftime.sleep(20)
+        #         #      quit()
+        #
+        #          for j in range(mr,latrange.size-1):
+        #              if dslp[j] < 0 or j == latrange.size-2:
+        #                  lslp[i] = rslp[j]
+        #                 #  fout.write(" {:>14}{:4.0f}{:>5}{:8.3f}{:>5} {:7.3f}{:>5} {:4.1f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format("angle=",ilon,"lon=",nlon[j+1,i],"lat=",nlat[j+1,i],"rad=",(j+1)*dlat,"cslp=",slp0[0],"fslp=",lslp[i]))
+        #                 #  ftime.sleep(10)
+        #                  break
+        #
+        #
+        #     # find the last closed isobar (fslp)
+        #     fslp = np.amin(lslp)
+        #     cgslp = slp[iyr[ntrk-1,n],it[ntrk-1,n],iplat,iplon]
+        #     cycdepth = fslp-cgslp
+        #
+        #     # set rad = 0 for weak cyclones
+        #     if cycdepth >= 0.5 :
+        #         # find where last closed isobar fslp cross each radius
+        #         gridlat = np.copy(latrange)
+        #         for i,ilon in enumerate(lonrange) :
+        #             for j in range(mr,latrange.size-1):
+        #              slp2 = slpint(nlon[j+1,i],nlat[j+1,i])[0]
+        #              slp1 = slpint(nlon[j,i],nlat[j,i])[0]
+        #
+        #              if slp1 <= fslp and slp2 > fslp :
+        #                 rad[i] = j*dlat + (fslp-slp1)/(slp2-slp1)*dlat
+        #                 # flat[i], flon[i] = rotated_grid_transform(plat[0],plon[0],[90-rad[i]],[ilon],2)
+        #                 flat[i], flon[i] = rotated_grid_transform(lats[iplat],lons[iplon],[90-rad[i]],[ilon],2)
+        #                 if flon[i] < 0:
+        #                     flon[i] = flon[i]+360
+        #                 # print "flat=",flat, "flon=",flon
+        #                 flslp[i] = slpint(flon[0],flat[0])[0]
+        #                 #  fout.write(" {:>14}{:4.0f}{:>5}{:8.3f}{:>5} {:7.3f}{:>5} {:7.3f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format("angle=",ilon,"lon=",flon[0],"lat=",flat[0],"rad=",rad[i],"cslp=",slp0[0],"fslp=",flslp[i]))
+        #                 break
+        #
+        #              if j == latrange.size-1:
+        #                 if slpint(nlon[mr,i],nlat[mr,i])[0] > fslp :
+        #                     rad[i] = mr*dlat
+        #                     # flat[i], flon[i] = rotated_grid_transform(plat[0],plon[0],rad[i],[ilon],2)
+        #                     flat[i], flon[i] = rotated_grid_transform(lat[iplat],lons[iplon],rad[i],[ilon],2)
+        #                     if flon[i] < 0:
+        #                         flon[i] = flon[i]+360
+        #                     flslp[i] = slpint(flon[0],flat[0])[0]
+        #                     #  fout.write(" {:>14}{:4.0f}{:>5}{:8.3f}{:>5} {:7.3f}{:>5} {:7.3f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format("angle=",ilon,"lon=",flon[0],"lat=",flat[0],"rad=",rad[i],"cslp=",slp0[0],"fslp=",flslp[i]))
+        #                 elif slpint(nlon[j],nlat[j])[0] < fslp :
+        #                     print "!!!! fslp bug"
+        #                     print fslp, slpint(nlon[j],nlat[j])[0]
+        #                     #  ftime.sleep(20)
+        #                     quit()
+        #
+        #             # fout.write(" {:>14}{:4.0f}{:>5}{:8.3f}{:>5} {:7.3f}{:>5} {:7.3f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format
+        #             #           ("angle=",ilon,"lon=",flon[i],"lat=",flat[i],"rad=",rad[i],"cslp=",slp0[0],"fslp=",flslp[i]))
+        #
+        #
+        #     else :
+        #         for i,ilon in enumerate(lonrange) :
+        #             rad[i]   = 0
+        #             flat[i]  =  plat[0]
+        #             flon[i]  =  plon[0]
+        #             flslp[i]    = fslp
+        #             # fout.write(" {:>14}{:4.0f}{:>5}{:8.3f}{:>5} {:7.3f}{:>5} {:7.3f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format
+        #             #           ("angle=",ilon,"lon=",flon[i],"lat=",flat[i],"rad=",rad[i],"cslp=",slp0[0],"fslp=",flslp[i]))
+        #
+        #     Area = 0
+        #     for i,ilon in enumerate(lonrange) :
+        #         Area = Area + rad[i]**2
+        #     Area = Area/lonrange.size
+        #
+        #     if all(rad) > 0 :
+        #         effrad = np.sqrt(Area)
+        #         fout.write(" {:>14}{:8.3f}{:>6} {:7.3f}{:>7} {:7.3f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format
+        #                   ("cglon=",lons[iplon],"cglat=",lats[iplat],"cgslp=",cgslp,"fslp=",fslp,"effrad=",effrad))
+        #
+        #         for i,ilon in enumerate(lonrange) :
+        #             fout.write(" {:>14}{:4.0f}{:>5}{:8.3f}{:>5} {:7.3f}{:>5} {:7.3f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format
+        #                   ("angle=",ilon,"lon=",flon[i],"lat=",flat[i],"rad=",rad[i],"cslp=",cgslp,"fslp=",flslp[i]))
+        #
+        #     else:
+        #         effrad = 0
+        #         fout.write(" {:>14}{:8.3f}{:>7} {:7.3f}{:>7} {:7.3f} {:>5} {:7.3f} {:>5} {:7.3f}\n".format
+        #                   ("cglon=",lons[iplon],"cglat=",lats[iplat],"cgslp=",cgslp,"fslp=",fslp,"effrad=",effrad))
+        #
+        #    # cyclones onto the regular grid
+        #
+        #     print "rad = ",rad
+        #     print "effrad = ", effrad
+        #
+        #     # if effrad != 0 and iyr[ntrk-1,n]==yr:
+        #     if effrad != 0 :
+        #
+        #        maxrad = np.amax(rad)+1
+        #
+        #        minlat = lats[iplat]-maxrad
+        #        if minlat < -90 :
+        #            minlat = -90.
+        #            j1 = np.where(lats==-90.)[0]
+        #        else :
+        #            j1 = find_nearest(lats,minlat)
+        #
+        #        maxlat = plat[0]+maxrad
+        #        if maxlat > 90 :
+        #            maxlat = 90.
+        #            j2 = np.where(lats==90.)[0]
+        #        else :
+        #            j2 = find_nearest(lats,maxlat)
+        #
+        #        if j1 < j2:
+        #            jrange = range(j1,j2+1)
+        #        else:
+        #            jrange = range(j2,j1+1)
+        #
+        #        for j in jrange:
+        #             for i,ilon in enumerate(lons):
+        #
+        #                 # gdist = dist(plat[0],plon[0],lats[j],ilon)
+        #                 gdist = dist(lats[iplat],lons[iplon],lats[j],ilon)
+        #                 gdist = gdist/deg
+        #
+        #                 if gdist <= maxrad:
+        #                     # glat, glon = rotated_grid_transform(plat[0],plon[0],[lats[j]],[ilon],1)
+        #                     glat, glon = rotated_grid_transform(lats[iplat],lons[iplon],[lats[j]],[ilon],1)
+        #
+        #                     if glon[0] < 0 :
+        #                         glon[0] = glon[0] + 360
+        #
+        #                     indlon = find_nearest(lonrange,glon[0])
+        #
+        #                     if gdist <= rad[indlon] :
+        #                         gridcyc[it[ntrk-1,n],j,i] = 1
+        #
+        #                     # print "to grid:",it[ntrk-1,n],plat[0],plon[0],effrad
+        #
+        #     #else:
+        #         # j = find_nearest(lats,plat[0])
+        #         # i = find_nearest(lons,plon[0])
+        #
+        #         # gridcyc[it[ntrk-1,n],j,i] = 2
+        #
+        #         # gridcyc[it[ntrk-1,n],iplat,iplon] = 2
+        #
+        #     gridcyc[it[ntrk-1,n],iplat,iplon] = 2
+        #
+        #
+        #     # end radius estimation
+        #     # break  # for the first step of the track
+        #
+        # # break  # for testing - first tack only
 
 
     f.close()
@@ -805,41 +875,69 @@ print("Start NetCDF writing")
 # for iv in range(varlist['name'].size) :
 
 
-ncvar = "cyclone"
+ncvar = "cycnum"
 print 'ncvar=',ncvar
-fcyc = '../output/cyc.%d.nc' % (yr)
+fcyc = '../ERAint/trkgrid/trk.%d.nc' % (yr)
 ncout = Dataset(fcyc, 'w', format='NETCDF4')
-ncout.description = "Cyclone area from  %s" % (ftrk)
+ncout.description = "Cyclone number from  %s" % (ftrk)
 
 # Using our previous dimension info, we can create the new time dimension
 # Even though we know the size, we are going to set the size to unknown
 
-dimnam=('longitude','latitude','time')
+dimnam=('lon','lat,'time')
 varnam=['longitude','latitude','time',ncvar]
 
 ncout.createDimension(dimnam[0], lons.size)
 ncout.createDimension(dimnam[1], lats.size)
 ncout.createDimension(dimnam[2], None)
 
-for nv in range(0, 3) :
-    ncout_var = ncout.createVariable(varnam[nv], nc.variables[varnam[nv]].dtype,dimnam[nv])
-    for ncattr in nc.variables[varnam[nv]].ncattrs():
-        ncout_var.setncattr(ncattr, nc.variables[varnam[nv]].getncattr(ncattr))
+
+
+# for nv in range(0, 3) :
+#     # ncout_var = ncout.createVariable(varnam[nv], nc.variables[varnam[nv]].dtype,dimnam[nv])
+#     ncout_var = ncout.createVariable(varnam[nv], 'f',dimnam[nv])
+    # for ncattr in nc.variables[varnam[nv]].ncattrs():
+        # ncout_var.setncattr(ncattr, nc.variables[varnam[nv]].getncattr(ncattr))
 #print(nc.variables['latitude'].ncattrs())
 
-ncout.variables[dimnam[0]][:] = lons
-ncout.variables[dimnam[1]][:] = lats
-ncout.variables[dimnam[2]][:] = time
-#ncout.variables[dimnam[2]][:] = 1
+#create  variables
+ #lons
+nv=0
+ncout_var = ncout.createVariable(varnam[nv], 'f',dimnam[nv])
+if varnam[nv] == 'longitude' :
+    ncout_var.long_name = varnam[nv]
+    ncout_var.units = 'degrees_east'
+    ncout.variables[dimnam[0]][:] = lons
 
-print gridcyc.shape
+ #lats
+nv=1
+ncout_var = ncout.createVariable(varnam[nv], 'f',dimnam[nv])
+if varnam[nv] == 'latitude' :
+    ncout_var.long_name = varnam[nv]
+    ncout_var.units = 'degrees_north'
+    ncout.variables[dimnam[1]][:] = lats
+
+ #time
+nv=2
+ncout_var = ncout.createVariable(varnam[nv], 'f',dimnam[nv])
+ncout_var.long_name = varnam[nv]
+if varnam[nv] == 'time' :
+    ncout_var.calendar = 'gregorian'
+    ncout_var.units = 'hours since 1900-01-01 00:00:0.0'
+    #for one time step - test!
+    tdelta =  datetime.datetime(cyr[ntrk-1,n],cmon[ntrk-1,n],cdate[ntrk-1,n],chour[ntrk-1,n]) - datetime.datetime(1900, 1, 1, 0)
+    ncout.variables[dimnam[2]][:] = divmod(tdelta.total_seconds(),3600)[0]
+
+
+print cycgrd[:,:,:].shape
+print cycgrd[:,:,0].shape
 print lons.size
 print lats.size
-print time.size
+# print time.size
 
 ncout_var = ncout.createVariable(ncvar, 'f',dimnam[::-1])
 print ncout_var.shape
-#ncout_var.long_name = 'streamfunction'
+ncout_var.long_name = 'number of cylones'
 # ncout_var.scale_factor = varlist["scale"][iv]
 # ncout_var.add_offset   = 0.
 # ncout_var.units        = 'scale   %s' % varlist["scale"][iv]
@@ -847,7 +945,7 @@ print ncout_var.shape
 #print qx.shape
 #print ncout_var.shape
 # ncout_var[:,:,:] = np.swapaxes(gridcyc,0,2)
-ncout_var[:,:,:] = gridcyc
+ncout_var[0,:,:] = cycgrd[:,:,0]
 
 ncout.close()
 
