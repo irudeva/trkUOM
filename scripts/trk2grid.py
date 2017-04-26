@@ -53,6 +53,11 @@ lons = np.arange(0,360,grdres)
 lats = np.arange(90,-91,-grdres)
 
 cycrad = 2.5*deg   # cyclone area
+#Parameter ird
+#   ird = 0 => cyc area = cycrad
+#   ird = 1 => cyc area = rd from trk file
+
+ird  = 1
 
 dset = "erain"
 # scheme = "UOM"
@@ -62,22 +67,22 @@ dset = "erain"
 time0 = 'hours since 1900-01-01 00:00:0.0'
 dt0 = datetime.datetime(1900, 1, 1, 0)
 
-max_ntrk =  505 #20000   # max number of tracks per year
+max_ntrk =  20000   # max number of tracks per year
 max_trklength = 200      # max length of a track
 
 # creat arrays for recording tracks
-trklen = np.empty(max_ntrk,np.int16); #trklen.fill(0)
-trktime = np.empty([max_ntrk,max_trklength],np.int16); # trktime.fill(0)
-trklon  = np.empty([max_ntrk,max_trklength]); #trklon.fill(0)
-trklat  = np.copy(trklon)
+trklen = np.empty(max_ntrk,np.int16); trklen.fill(0)
+trktime = np.empty([max_ntrk,max_trklength],np.int); trktime.fill(0)
+trklon  = np.empty([max_ntrk,max_trklength]); trklon.fill(0)
+trklat  = np.copy(trklon); trklat.fill(0)
 
 
 
-for yr in range(2005,2006):
+for yr in range(2016,2017):
     #create time variable
     dt_nc = [ datetime.datetime(yr-1, 11, 16, 0)+i*timedelta(hours=6) for i in range(1704)]
     if calendar.isleap(yr):
-        dt_nc = [ datetime.datetime(yr-1, 1, 1, 0)+i*timedelta(hours=6) for i in range(1708)]
+        dt_nc = [ datetime.datetime(yr-1, 11, 16, 0)+i*timedelta(hours=6) for i in range(1708)]
 
     dt_hours = np.empty(len(dt_nc)); dt_hours.fill(0)
     for it, dt in enumerate(dt_nc) :
@@ -87,6 +92,7 @@ for yr in range(2005,2006):
 
     #grid for cyclone records
     cycgrd_area = np.empty([len(lons),len(lats),len(dt_nc)],np.int16); cycgrd_area.fill(0)
+    # cycgrd_rad  = np.copy(cycgrd_area)    #for radius from cyc tracking
     cycgrd_cen  = np.copy(cycgrd_area)
 
 
@@ -103,8 +109,9 @@ for yr in range(2005,2006):
     clon  = np.zeros([max_ntrk,max_trklength])
     clat  = np.zeros_like(clon)
     cslp = np.zeros_like(clon)
+    crad = np.zeros_like(clon)
     date = np.zeros_like(clon,dtype = np.int)
-    trktime  = np.zeros_like(date)
+    ntime  = np.zeros_like(date)
     ctime  = np.empty_like(date); ctime.fill(-1)
     cyr    = np.empty_like(date); cyr.fill(-1)
     cmon   = np.empty_like(date); cmon.fill(-1)
@@ -144,20 +151,16 @@ for yr in range(2005,2006):
             print " ERROR!!! Track length is more than max_trklength: nit = %d, max_trklength = %d" %(nit,max_trklength)
             quit()
 
-        #print 'ntrk=',ntrk, 'nit=',nit
-
         npnt[ntrk-1]=nit
         for n in range(0,nit):
             l = f.readline()
-            # print "l: ",l
-            # fout.write(l)
             columns = l.split()
             clon[ntrk-1,n]=float(columns[7])
-            print "lon: ",n, clon[ntrk-1,n]
             clat[ntrk-1,n]=float(columns[8])
             cslp[ntrk-1,n]=float(columns[9])
+            crad[ntrk-1,n]=float(columns[12])
             date[ntrk-1,n]=columns[1]
-            trktime[ntrk-1,n]=columns[2]
+            ntime[ntrk-1,n]=columns[2]
 
             # for ind,year in enumerate(np.arange(yr-1,yr+1)):
             #     if str(year) == str(date[ntrk-1,n])[0:4]:
@@ -171,8 +174,7 @@ for yr in range(2005,2006):
             #     continue
             cmon[ntrk-1,n]   = int(str(date[ntrk-1,n])[4:6])
             cdate[ntrk-1,n]  = int(str(date[ntrk-1,n])[6:8])
-            chour[ntrk-1,n]  = int(str(trktime[ntrk-1,n]/100))
-            print ctime[ntrk-1,n]
+            chour[ntrk-1,n]  = int(str(ntime[ntrk-1,n]/100))
             for ind,t in enumerate(dt_nc) :
                 if t == datetime.datetime(cyr[ntrk-1,n],cmon[ntrk-1,n],cdate[ntrk-1,n],chour[ntrk-1,n]):
                     ctime[ntrk-1,n] = ind
@@ -188,12 +190,16 @@ for yr in range(2005,2006):
             # clon[ntrk-1,n] = 1 # test
             # clat[ntrk-1,n] = 55.  #test!
 
+            if ird == 1:
+                cycrad = crad[ntrk-1,n]*deg
+
             if clon[ntrk-1,n] < 0:
                  clon[ntrk-1,n]=clon[ntrk-1,n]+360
             ilon = find_nearest(lons,clon[ntrk-1,n])
             ilat = find_nearest(lats,clat[ntrk-1,n])
 
             cycgrd_area[ilon,ilat,ctime[ntrk-1,n]] = ntrk*10
+            # cycgrd_rad[ilon,ilat,ctime[ntrk-1,n]] = ntrk*10
             cycgrd_cen[ilon,ilat,ctime[ntrk-1,n]]  = ntrk
 
 
@@ -203,8 +209,8 @@ for yr in range(2005,2006):
             else :
                 cdist_pole = (90 + clat[ntrk-1,n])*deg
 
-            print 'cyclone at ', ilat,ilon
-            print 'dist_pole', cdist_pole
+            # print 'cyclone at ', ilat,ilon
+            # print 'dist_pole', cdist_pole
 
             for nlat in np.arange(ilat,ilat+10) :
                 if nlat <= len(lats)-1 :
@@ -220,36 +226,30 @@ for yr in range(2005,2006):
                                 nnlon = nlon - len(lons)
                                 # print lons[nnlon]
                             # print 'nnlon=',nnlon
-                            print " // ++ ", nlat,nnlon
+                            # print " // ++ ", nlat,nnlon
                             cdist = dist(lats[nlat],lons[nnlon],clat[ntrk-1,n],clon[ntrk-1,n])
-                            print cdist,cycrad
+                            # print cdist,cycrad
                             if cdist <= cycrad :
-                                print " ++ ", nlat, nnlon
+                                # print " ++ ", nlat, nnlon
                                 cycgrd_area[nnlon,nlat,ctime[ntrk-1,n]] = cycgrd_area[nnlon,nlat,ctime[ntrk-1,n]] + 1
                             else :
                                 if cdist_pole > cycrad:
-                                    print 'break'
                                     break
                         if cdist_pole > cycrad :
                             for nlon in np.arange(ilon-1,ilon-len(lons)+1,-1) :
                                 nnlon = nlon
-                                # if nlon <0 :
-                                #     nnlon = nlon + len(lons)
-                                print " // +- ", nlat, nnlon
                                 # cdist = dist(lats[nlat],lons[nnlon],clat[ntrk-1,n],clon[ntrk-1,n])
                                 cdist = dist(lats[nlat],lons[nnlon],lats[ilat],lons[ilon])
-                                # print cdist,cycrad
                                 if cdist <= cycrad :
-                                    print " +- ", nlat, nnlon
+                                    # print " +- ", nlat, nnlon
                                     cycgrd_area[nnlon,nlat,ctime[ntrk-1,n]] = cycgrd_area[nnlon,nlat,ctime[ntrk-1,n]] + 1
                                 else :
-                                    print 'break'
                                     break
                     else :
-                        print "dist along longitude > cycdist => no need to check 1 "
+                        # print "dist along longitude > cycdist => no need to check 1 "
                         break #dist along longitude > cycdist => no need to check
                 else :
-                    print "out of bounds"
+                    # print "out of bounds"
                     break #out of bounds
 
             for nlat in np.arange(ilat-1,ilat-10,-1) :
@@ -263,51 +263,43 @@ for yr in range(2005,2006):
                             nnlon = nlon
                             if nlon >= len(lons):
                                 nnlon = nlon - len(lons)
-                            print " // -+ ", nlat,nnlon
+                            # print " // -+ ", nlat,nnlon
                             cdist = dist(lats[nlat],lons[nnlon],clat[ntrk-1,n],clon[ntrk-1,n])
-                            # print cdist,cycrad
                             if cdist <= cycrad :
-                                print " -+ ", nlat, nnlon
+                                # print " -+ ", nlat, nnlon
                                 cycgrd_area[nnlon,nlat,ctime[ntrk-1,n]] = cycgrd_area[nnlon,nlat,ctime[ntrk-1,n]] + 1
                             else :
                                 if cdist_pole > cycrad:
-                                    print 'break'
                                     break
                         if cdist_pole > cycrad :
                             for nlon in np.arange(ilon-1,ilon-len(lons)+1,-1) :
                                 nnlon = nlon
-                                # if nlon < 0 :
-                                #     nnlon = nlon + len(lons)
-                                print " // -- ", nlat,nnlon
+                                # print " // -- ", nlat,nnlon
                                 cdist = dist(lats[nlat],lons[nnlon],clat[ntrk-1,n],clon[ntrk-1,n])
-                                # print cdist,cycrad
                                 if cdist <= cycrad :
-                                    print " -- ", nlat, nnlon
+                                    # print " -- ", nlat, nnlon
                                     cycgrd_area[nnlon,nlat,ctime[ntrk-1,n]] = cycgrd_area[nnlon,nlat,ctime[ntrk-1,n]] + 1
                                 else :
-                                    print 'break'
                                     break
                     else :
-                        print "dist along longitude > cycdist => no need to check 2"
+                        # print "dist along longitude > cycdist => no need to check 2"
                         break #dist along longitude > cycdist => no need to check
                 else :
-                    print "out of bounds"
+                    # print "out of bounds"
                     break #out of bounds
-
-            print cyr[ntrk-1,n],cmon[ntrk-1,n],cdate[ntrk-1,n],chour[ntrk-1,n], n, ntrk
 
             # break #test - first point of the first cyclone onto the grid
 
         ####################################################
         # record tracks
 
-        trklen[ntrk-1] = nit
+        trklen[ntrk-1] = nit; print "trklen =", trklen[ntrk-1]," ntrk = ", ntrk
         trklon[ntrk-1,:nit] = clon[ntrk-1,:nit]
         trklat[ntrk-1,:nit] = clat[ntrk-1,:nit]
         trktime[ntrk-1,:nit] = dt_hours[ctime[ntrk-1,:nit]]
 
 
-        break  #test - first cyclone onto the grid
+        # break  #test - first cyclone onto the grid
     # print cyr[ntrk-1,n],cmon[ntrk-1,n],cdate[ntrk-1,n],chour[ntrk-1,n], n, ntrk
     # quit()
     #
@@ -331,13 +323,13 @@ print("Start NetCDF writing")
 
 # ncvar = "cycnum"
 # print 'ncvar=',ncvar
-fcyc = '../ERAint/trkgrid/cycnum.%d.nc' % (yr)
+fcyc = '../ERAint/trkgrid/cycloc_rd.%d.nc' % (yr)
 nccyc = Dataset(fcyc, 'w', format='NETCDF4')
 nccyc.description = "Cyclone centers from  %s. Cyclone center number corresponds \
                      to the tracking number in the source file." % (ftrk)
 
 dimnam=('lon','lat','time')
-varnam=['longitude','latitude','time','cyccen','cycarea']
+varnam=['longitude','latitude','time','cycloc','cycarea']
 
 #dimensions
 nccyc.createDimension(dimnam[0], lons.size)
@@ -385,9 +377,10 @@ if varnam[nv] == 'time' :
 
 
 #cyclone centers to netcdf
-nccyc_var = nccyc.createVariable(ncvar, 'f',dimnam[::-1])
+nv = 3
+nccyc_var = nccyc.createVariable(varnam[nv], 'f',dimnam[::-1])
 # print nccyc_var.shape
-nccyc_var.long_name = 'cyclone center'
+nccyc_var.long_name = 'location of cyclone centers'
 # nccyc_var.scale_factor = varlist["scale"][iv]
 # nccyc_var.add_offset   = 0.
 # nccyc_var.units        = 'scale   %s' % varlist["scale"][iv]
@@ -398,9 +391,14 @@ nccyc_var.long_name = 'cyclone center'
 nccyc_var[:,:,:] = np.swapaxes(cycgrd_cen[:,:,:],0,2)
 
 #cyclone area to netcdf
-nccyc_var = nccyc.createVariable(ncvar, 'f',dimnam[::-1])
+nv =4
+nccyc_var = nccyc.createVariable(varnam[nv], 'f',dimnam[::-1])
 # print nccyc_var.shape
 nccyc_var.long_name = 'cyclone area'
+if ird == 0 :
+    nccyc_var.radius = cycrad
+elif ird == 1:
+    nccyc_var.radius = "rd from origina trk file"
 # nccyc_var.scale_factor = varlist["scale"][iv]
 # nccyc_var.add_offset   = 0.
 # nccyc_var.units        = 'scale   %s' % varlist["scale"][iv]
@@ -418,37 +416,62 @@ nccyc.close()
 
 
 ftrk = '../ERAint/trkgrid/trk.%d.nc' % (yr)
-nctrk = Dataset(fcyc, 'w', format='NETCDF4')
+nctrk = Dataset(ftrk, 'w', format='NETCDF4')
 nctrk.description = "Tracks from  %s" % (ftrk)
 
 dimnam=('n','ntrk')
 varnam=['trklen','trktime','trklon','trklat']
 
 #dimensions
-nctrk.createDimension(dimnam[0], max_ntrk)
+nctrk.createDimension(dimnam[0], max_trklength )
 nctrk.createDimension(dimnam[1], None)
 
 #variables
-nv=1
-nccyc_var = nccyc.createVariable(varnam[nv], 'f',dimnam[nv])
-if varnam[nv] == 'latitude' :
-    nccyc_var.long_name = varnam[nv]
-    nccyc_var.units = 'degrees_north'
-    nccyc.variables[varnam[nv]][:] = lats
 
- #time
-nv=2
-nccyc_var = nccyc.createVariable(varnam[nv], 'f',dimnam[nv])
+nv=0
+nccyc_var = nctrk.createVariable(varnam[nv], 'i2',dimnam[1])
 nccyc_var.long_name = varnam[nv]
-if varnam[nv] == 'time' :
+if varnam[nv] == 'trklen' :
+    nccyc_var.long_name = 'length of track'
+    # nccyc_var.units = 'hours since 1900-01-01 00:00:0.0'
+    # nccyc_var.units = time0
+    #for one time step - test!
+    # tdelta =  datetime.datetime(cyr[ntrk-1,n],cmon[ntrk-1,n],cdate[ntrk-1,n],chour[ntrk-1,n]) - datetime.datetime(1900, 1, 1, 0)
+    # nccyc.variables[varnam[nv]][:] = divmod(tdelta.total_seconds(),3600)[0]
+    nccyc_var[:] = trklen[:ntrk]
+
+nv=1
+nccyc_var = nctrk.createVariable(varnam[nv], 'i',dimnam[::-1])
+nccyc_var.long_name = varnam[nv]
+if varnam[nv] == 'trktime':
+    nccyc_var.long_name = 'time of the current track point'
     nccyc_var.calendar = 'gregorian'
     # nccyc_var.units = 'hours since 1900-01-01 00:00:0.0'
     nccyc_var.units = time0
     #for one time step - test!
     # tdelta =  datetime.datetime(cyr[ntrk-1,n],cmon[ntrk-1,n],cdate[ntrk-1,n],chour[ntrk-1,n]) - datetime.datetime(1900, 1, 1, 0)
     # nccyc.variables[varnam[nv]][:] = divmod(tdelta.total_seconds(),3600)[0]
-    nccyc.variables[varnam[nv]][:] = dt_hours
+    nccyc_var[:,:] = trktime[:ntrk,:]
 
+
+
+nv=2
+nccyc_var = nctrk.createVariable(varnam[nv], 'f',dimnam[::-1])
+if varnam[nv] == 'trklon' :
+    nccyc_var.long_name = 'longitude of the current track point'
+    nccyc_var.units = 'degrees_east'
+    # nctrk.variables[varnam[nv]][:] = lats
+    nccyc_var[:,:] = trklon[:ntrk,:]
+
+nv=3
+nccyc_var = nctrk.createVariable(varnam[nv], 'f',dimnam[::-1])
+if varnam[nv] == 'trklat' :
+    nccyc_var.long_name = 'latitude of the current track point'
+    nccyc_var.units = 'degrees_north'
+    # nctrk.variables[varnam[nv]][:] = lats
+    nccyc_var[:,:] = trklat[:ntrk,:]
+
+nctrk.close()
 
 
 ##---End NetCDF write---------------------------------------------------------------
