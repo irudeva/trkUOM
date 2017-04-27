@@ -6,9 +6,9 @@ month_abbr = (/"","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep", \
                     "Oct","Nov","Dec"/)
 
 ; time
-year = (/1979,1979/)
+year = (/1979,2017/)
 yr = 2016 ; year(0)
-mm = (/9,12/)  ;(/9,9/)
+mm = (/0,12/)  ;(/9,9/)
 dd = (/0,31/)
 hr = (/0,18/)
 
@@ -21,12 +21,9 @@ trk2 = 20000; 5518 ;20000
 
 ;reg
 hs = "SH"
-;lon = (/100-2.5,100+2.5/)
-;lat = (/-39.-2.5,-39+2.5/)
-;reg = "indoc"
-lon = (/0,360/)
-lat = (/-90,0/)
-reg = "hs"
+lon = (/100-2.5,100+2.5/)
+lat = (/-39.-2.5,-39+2.5/)
+reg = "indoc"
 
 
 ;************************************************
@@ -61,11 +58,41 @@ reg = "hs"
   ;print (cd_calendar(timeslp(n), 0))
   ;status_exit(1)
 
+  ;************************************************
+  ; 2. cyclones
+  ;************************************************
+
+  b = addfile("../ERAint/trkgrid/trk."+yr+".nc","r")
+
+  trklen = b->trklen
+  trktime= b->trktime
+  trklon = b->trklon
+  trklat = b->trklat
+  trkslp = b->trkslp
+  trkrad = b->trkrad
+
+
+  ; what's in netcdf:
+  ;varlist[1] = ("trktime",     "time of the current track point",  'i',                    time0, trktime[:ntrk,:])
+  ;varlist[0] = ( "trklon","longitude of the current track point",  'f',           'degrees_east',  trklon[:ntrk,:])
+  ;varlist[2] = ( "trklat", "latitude of the current track point",  'f',          'degrees_north',  trklat[:ntrk,:])
+  ;varlist[3] = ( "trkslp", "slp in cyclone center from trk file",  'f',                    'hPa',  trkslp[:ntrk,:])
+  ;varlist[4] = ( "trklpl",             "Laplacian from trk file",  'f','hPa/degrees_latitude**2',  trklpl[:ntrk,:])
+  ;varlist[5] = ( "trkdp",                  "depth from trk file",  'f',                    'hPa',   trkdp[:ntrk,:])
+  ;varlist[6] = ( "trkrad",                "radius from trk file",  'f',       'degrees_latitude',   trkrd[:ntrk,:])
+  ;varlist[7] = ( "trkiop",                      "cyclone status", 'i2','0->strong/1->weak/10->str_open/11->weak_open',  trkiop[:ntrk,:])
+
 
 
 ;************************************************
 ; Plotting - preparation
 ;************************************************
+
+;create mask
+  trkmask = trktime
+  trkmask = 0
+
+
 
 date_str1 = sprinti("%0.4i", year(0))+sprinti("%0.2i", mm(0))+ \
              sprinti("%0.2i", dd(0)) +"_"+sprinti("%0.2iZ", hr(0))
@@ -117,46 +144,9 @@ mres = True
 txres               = True
  txres@txFontHeightF = 0.01
 
- ;************************************************
- ; read in netCDF files
- ;************************************************
- ; 2. cyclones
- ;************************************************
-
- do iyr =year(0),year(1)
-
- ftrk = "../ERAint/trkgrid/trk."+iyr+".nc"
- print("ftrk= " + ftrk)
- b = addfile(ftrk,"r")
-
- trklen = b->trklen
- trktime= b->trktime
- trklon = b->trklon
- trklat = b->trklat
- trkslp = b->trkslp
- trkrad = b->trkrad
-
-
- ; what's in netcdf:
- ;varlist[1] = ("trktime",     "time of the current track point",  'i',                    time0, trktime[:ntrk,:])
- ;varlist[0] = ( "trklon","longitude of the current track point",  'f',           'degrees_east',  trklon[:ntrk,:])
- ;varlist[2] = ( "trklat", "latitude of the current track point",  'f',          'degrees_north',  trklat[:ntrk,:])
- ;varlist[3] = ( "trkslp", "slp in cyclone center from trk file",  'f',                    'hPa',  trkslp[:ntrk,:])
- ;varlist[4] = ( "trklpl",             "Laplacian from trk file",  'f','hPa/degrees_latitude**2',  trklpl[:ntrk,:])
- ;varlist[5] = ( "trkdp",                  "depth from trk file",  'f',                    'hPa',   trkdp[:ntrk,:])
- ;varlist[6] = ( "trkrad",                "radius from trk file",  'f',       'degrees_latitude',   trkrd[:ntrk,:])
- ;varlist[7] = ( "trkiop",                      "cyclone status", 'i2','0->strong/1->weak/10->str_open/11->weak_open',  trkiop[:ntrk,:])
-
-
-
 ;************************************************
 ; masking
 ;************************************************
-
-
-;create mask
-  trkmask = trktime
-  trkmask = 0
 
 do ntrk = 0,dimsizes(trklen)-1
   ;print ("ntrk="+ntrk+" n= "+ trklen(ntrk))
@@ -165,7 +155,7 @@ do ntrk = 0,dimsizes(trklen)-1
    nit = trklen(ntrk)
    trkdate = cd_calendar(trktime(ntrk,:nit-1), 0)
    do n = 0,nit-1
-    ;print(trkdate(n,1)+" ")
+    print(trkdate(n,1)+" ")
     ;detect season
     if(any((/1,2,12/).eq.trkdate(n,1)))then
       trkssn = "DJF"
@@ -180,7 +170,7 @@ do ntrk = 0,dimsizes(trklen)-1
       trkssn = "SON"
     end if
 
-    if (trkdate(n,0).ge.year(0).and.trkdate(n,0).le.year(1).and.trkdate(n,0).eq.iyr)then
+    if (trkdate(n,0).ge.year(0).and.trkdate(n,0).le.year(1))then
      if (trkdate(n,1).ge.mm(0).and.trkdate(n,1).le.mm(1))then
       if (trkdate(n,2).ge.dd(0).and.trkdate(n,2).le.dd(1))then
        if (trkdate(n,3).ge.hr(0).and.trkdate(n,3).le.hr(1))then
@@ -261,16 +251,6 @@ do ntrk = 0,dimsizes(trklen)-1
  end if
 
 end do  ;ntrk
-
-delete(trklen)
-delete(trktime)
-delete(trklon)
-delete(trklat)
-delete(trkslp)
-delete(trkrad)
-delete(trkmask)
-
-end do   ; yr
 
 draw(plot1)
 frame(wks)

@@ -71,14 +71,19 @@ max_ntrk =  20000   # max number of tracks per year
 max_trklength = 200      # max length of a track
 
 # creat arrays for recording tracks
-trklen = np.empty(max_ntrk,np.int16); trklen.fill(0)
+trklen  = np.empty(max_ntrk,np.int16); trklen.fill(0)
 trktime = np.empty([max_ntrk,max_trklength],np.int); trktime.fill(0)
 trklon  = np.empty([max_ntrk,max_trklength]); trklon.fill(0)
-trklat  = np.copy(trklon); trklat.fill(0)
+trklat  =  np.copy(trklon); trklat.fill(0)
+trkslp  =  np.copy(trklon); trklat.fill(0)
+trkrd   =  np.copy(trklon); trklat.fill(0)
+trklpl  =  np.copy(trklon); trklat.fill(0)
+trkdp   =  np.copy(trklon); trklat.fill(0)
+trkiop  = np.copy(trktime); trklat.fill(0)
 
 
 
-for yr in range(2016,2017):
+for yr in range(1980,2017):
     #create time variable
     dt_nc = [ datetime.datetime(yr-1, 11, 16, 0)+i*timedelta(hours=6) for i in range(1704)]
     if calendar.isleap(yr):
@@ -110,6 +115,8 @@ for yr in range(2016,2017):
     clat  = np.zeros_like(clon)
     cslp = np.zeros_like(clon)
     crad = np.zeros_like(clon)
+    cdp  = np.zeros_like(clon)
+    clpl = np.zeros_like(clon)
     date = np.zeros_like(clon,dtype = np.int)
     ntime  = np.zeros_like(date)
     ctime  = np.empty_like(date); ctime.fill(-1)
@@ -117,6 +124,7 @@ for yr in range(2016,2017):
     cmon   = np.empty_like(date); cmon.fill(-1)
     cdate  = np.empty_like(date); cdate.fill(-1)
     chour  = np.empty_like(date); chour.fill(-1)
+    ciop   = np.zeros_like(date)  #open/close marker
 
     f = open(ftrk, 'r')
 
@@ -155,9 +163,12 @@ for yr in range(2016,2017):
         for n in range(0,nit):
             l = f.readline()
             columns = l.split()
+            ciop[ntrk-1,n]=float(columns[5])
             clon[ntrk-1,n]=float(columns[7])
             clat[ntrk-1,n]=float(columns[8])
             cslp[ntrk-1,n]=float(columns[9])
+            clpl[ntrk-1,n]=float(columns[10])
+            cdp [ntrk-1,n]=float(columns[11])
             crad[ntrk-1,n]=float(columns[12])
             date[ntrk-1,n]=columns[1]
             ntime[ntrk-1,n]=columns[2]
@@ -294,9 +305,14 @@ for yr in range(2016,2017):
         # record tracks
 
         trklen[ntrk-1] = nit; print "trklen =", trklen[ntrk-1]," ntrk = ", ntrk
-        trklon[ntrk-1,:nit] = clon[ntrk-1,:nit]
-        trklat[ntrk-1,:nit] = clat[ntrk-1,:nit]
-        trktime[ntrk-1,:nit] = dt_hours[ctime[ntrk-1,:nit]]
+        trklon [ntrk-1,:nit]  = clon[ntrk-1,:nit]
+        trklat [ntrk-1,:nit]  = clat[ntrk-1,:nit]
+        trktime[ntrk-1,:nit]  = dt_hours[ctime[ntrk-1,:nit]]
+        trkslp [ntrk-1,:nit]  = cslp[ntrk-1,:nit]
+        trkrd  [ntrk-1,:nit]  = crad[ntrk-1,:nit]
+        trkdp  [ntrk-1,:nit]  = cdp [ntrk-1,:nit]
+        trklpl [ntrk-1,:nit]  = clpl[ntrk-1,:nit]
+        trkiop [ntrk-1,:nit]  = ciop[ntrk-1,:nit]
 
 
         # break  #test - first cyclone onto the grid
@@ -309,169 +325,221 @@ for yr in range(2016,2017):
     f.close()
     print 'ftrk closed'
 
-#---Cyclone number to NetCDF write---------------------------------------------------------------
-print("Start NetCDF writing")
+    #---Cyclone number to NetCDF write---------------------------------------------------------------
+    print("Start NetCDF writing")
 
-# varlist = np.zeros(16, dtype = {'names': ['name', 'outname', 'data', 'scale'],
-#                                 'formats': ['a5', 'a5', '(241,480)f4', 'f4']} )
-#
-#
-# varlist[0] = ("u","u",u,1)
-# varlist[1] = ("v","v",v,1)
-# for iv in range(varlist['name'].size) :
-
-
-# ncvar = "cycnum"
-# print 'ncvar=',ncvar
-fcyc = '../ERAint/trkgrid/cycloc_rd.%d.nc' % (yr)
-nccyc = Dataset(fcyc, 'w', format='NETCDF4')
-nccyc.description = "Cyclone centers from  %s. Cyclone center number corresponds \
-                     to the tracking number in the source file." % (ftrk)
-
-dimnam=('lon','lat','time')
-varnam=['longitude','latitude','time','cycloc','cycarea']
-
-#dimensions
-nccyc.createDimension(dimnam[0], lons.size)
-nccyc.createDimension(dimnam[1], lats.size)
-nccyc.createDimension(dimnam[2], None)
+    # varlist = np.zeros(16, dtype = {'names': ['name', 'outname', 'data', 'scale'],
+    #                                 'formats': ['a5', 'a5', '(241,480)f4', 'f4']} )
+    #
+    #
+    # varlist[0] = ("u","u",u,1)
+    # varlist[1] = ("v","v",v,1)
+    # for iv in range(varlist['name'].size) :
 
 
-#variables
-# for nv in range(0, 3) :
-#     # nccyc_var = nccyc.createVariable(varnam[nv], nc.variables[varnam[nv]].dtype,dimnam[nv])
-#     nccyc_var = nccyc.createVariable(varnam[nv], 'f',dimnam[nv])
-    # for ncattr in nc.variables[varnam[nv]].ncattrs():
-        # nccyc_var.setncattr(ncattr, nc.variables[varnam[nv]].getncattr(ncattr))
-#print(nc.variables['latitude'].ncattrs())
+    # ncvar = "cycnum"
+    # print 'ncvar=',ncvar
+    fcyc = '../ERAint/trkgrid/cycloc_rd.%d.nc' % (yr)
+    nccyc = Dataset(fcyc, 'w', format='NETCDF4')
+    nccyc.description = "Cyclone centers from  %s. Cyclone center number corresponds \
+                         to the tracking number in the source file." % (ftrk)
 
-#create  variables
- #lons
-nv=0
-nccyc_var = nccyc.createVariable(varnam[nv], 'f',dimnam[nv])
-if varnam[nv] == 'longitude' :
+    dimnam=('lon','lat','time')
+    varnam=['longitude','latitude','time','cycloc','cycarea']
+
+    #dimensions
+    nccyc.createDimension(dimnam[0], lons.size)
+    nccyc.createDimension(dimnam[1], lats.size)
+    nccyc.createDimension(dimnam[2], None)
+
+
+    #variables
+    # for nv in range(0, 3) :
+    #     # nccyc_var = nccyc.createVariable(varnam[nv], nc.variables[varnam[nv]].dtype,dimnam[nv])
+    #     nccyc_var = nccyc.createVariable(varnam[nv], 'f',dimnam[nv])
+        # for ncattr in nc.variables[varnam[nv]].ncattrs():
+            # nccyc_var.setncattr(ncattr, nc.variables[varnam[nv]].getncattr(ncattr))
+    #print(nc.variables['latitude'].ncattrs())
+
+    #create  variables
+     #lons
+    nv=0
+    nccyc_var = nccyc.createVariable(varnam[nv], 'f',dimnam[nv])
+    if varnam[nv] == 'longitude' :
+        nccyc_var.long_name = varnam[nv]
+        nccyc_var.units = 'degrees_east'
+        nccyc.variables[varnam[nv]][:] = lons
+
+     #lats
+    nv=1
+    nccyc_var = nccyc.createVariable(varnam[nv], 'f',dimnam[nv])
+    if varnam[nv] == 'latitude' :
+        nccyc_var.long_name = varnam[nv]
+        nccyc_var.units = 'degrees_north'
+        nccyc.variables[varnam[nv]][:] = lats
+
+     #time
+    nv=2
+    nccyc_var = nccyc.createVariable(varnam[nv], 'f',dimnam[nv])
     nccyc_var.long_name = varnam[nv]
-    nccyc_var.units = 'degrees_east'
-    nccyc.variables[varnam[nv]][:] = lons
+    if varnam[nv] == 'time' :
+        nccyc_var.calendar = 'gregorian'
+        # nccyc_var.units = 'hours since 1900-01-01 00:00:0.0'
+        nccyc_var.units = time0
+        #for one time step - test!
+        # tdelta =  datetime.datetime(cyr[ntrk-1,n],cmon[ntrk-1,n],cdate[ntrk-1,n],chour[ntrk-1,n]) - datetime.datetime(1900, 1, 1, 0)
+        # nccyc.variables[varnam[nv]][:] = divmod(tdelta.total_seconds(),3600)[0]
+        nccyc.variables[varnam[nv]][:] = dt_hours
 
- #lats
-nv=1
-nccyc_var = nccyc.createVariable(varnam[nv], 'f',dimnam[nv])
-if varnam[nv] == 'latitude' :
-    nccyc_var.long_name = varnam[nv]
-    nccyc_var.units = 'degrees_north'
-    nccyc.variables[varnam[nv]][:] = lats
 
- #time
-nv=2
-nccyc_var = nccyc.createVariable(varnam[nv], 'f',dimnam[nv])
-nccyc_var.long_name = varnam[nv]
-if varnam[nv] == 'time' :
-    nccyc_var.calendar = 'gregorian'
-    # nccyc_var.units = 'hours since 1900-01-01 00:00:0.0'
-    nccyc_var.units = time0
+    #cyclone centers to netcdf
+    nv = 3
+    nccyc_var = nccyc.createVariable(varnam[nv], 'f',dimnam[::-1])
+    # print nccyc_var.shape
+    nccyc_var.long_name = 'location of cyclone centers'
+    # nccyc_var.scale_factor = varlist["scale"][iv]
+    # nccyc_var.add_offset   = 0.
+    # nccyc_var.units        = 'scale   %s' % varlist["scale"][iv]
+
+    #print qx.shape
+    #print nccyc_var.shape
+    # nccyc_var[:,:,:] = np.swapaxes(gridcyc,0,2)
+    nccyc_var[:,:,:] = np.swapaxes(cycgrd_cen[:,:,:],0,2)
+
+    #cyclone area to netcdf
+    nv =4
+    nccyc_var = nccyc.createVariable(varnam[nv], 'f',dimnam[::-1])
+    # print nccyc_var.shape
+    nccyc_var.long_name = 'cyclone area'
+    if ird == 0 :
+        nccyc_var.radius = cycrad
+    elif ird == 1:
+        nccyc_var.radius = "rd from origina trk file"
+    # nccyc_var.scale_factor = varlist["scale"][iv]
+    # nccyc_var.add_offset   = 0.
+    # nccyc_var.units        = 'scale   %s' % varlist["scale"][iv]
+
+    #print qx.shape
+    #print nccyc_var.shape
+    # nccyc_var[:,:,:] = np.swapaxes(gridcyc,0,2)
+    nccyc_var[:,:,:] = np.swapaxes(cycgrd_area[:,:,:],0,2)
+
+
+
+    nccyc.close()
+
+    ##---Tracks to NetCDF write---------------------------------------------------------------
+
+
+    ftrk = '../ERAint/trkgrid/trk.%d.nc' % (yr)
+    nctrk = Dataset(ftrk, 'w', format='NETCDF4')
+    nctrk.description = "Tracks from  %s" % (ftrk)
+
+    #dimensions
+    dimnam=('n','ntrk')
+
+    nctrk.createDimension(dimnam[0], max_trklength )
+    nctrk.createDimension(dimnam[1], None)
+
+    #variables
+    #  1D variable
+    ncvar = nctrk.createVariable('trklen', 'i2',dimnam[1])
+    ncvar.long_name = 'length of track'
+    ncvar[:]    = trklen[:ntrk]
     #for one time step - test!
     # tdelta =  datetime.datetime(cyr[ntrk-1,n],cmon[ntrk-1,n],cdate[ntrk-1,n],chour[ntrk-1,n]) - datetime.datetime(1900, 1, 1, 0)
     # nccyc.variables[varnam[nv]][:] = divmod(tdelta.total_seconds(),3600)[0]
-    nccyc.variables[varnam[nv]][:] = dt_hours
+
+    #  2D variables
+    frmt = "(%s,%s)f4" % (ntrk,max_trklength)
+    varlist = np.zeros( 8, dtype = {  'names': ['name', 'long_name', 'dtype',  'units', 'data'],
+                                    'formats': [  'a7',       'a31',    'a5',    'a44',   frmt]})
 
 
-#cyclone centers to netcdf
-nv = 3
-nccyc_var = nccyc.createVariable(varnam[nv], 'f',dimnam[::-1])
-# print nccyc_var.shape
-nccyc_var.long_name = 'location of cyclone centers'
-# nccyc_var.scale_factor = varlist["scale"][iv]
-# nccyc_var.add_offset   = 0.
-# nccyc_var.units        = 'scale   %s' % varlist["scale"][iv]
-
-#print qx.shape
-#print nccyc_var.shape
-# nccyc_var[:,:,:] = np.swapaxes(gridcyc,0,2)
-nccyc_var[:,:,:] = np.swapaxes(cycgrd_cen[:,:,:],0,2)
-
-#cyclone area to netcdf
-nv =4
-nccyc_var = nccyc.createVariable(varnam[nv], 'f',dimnam[::-1])
-# print nccyc_var.shape
-nccyc_var.long_name = 'cyclone area'
-if ird == 0 :
-    nccyc_var.radius = cycrad
-elif ird == 1:
-    nccyc_var.radius = "rd from origina trk file"
-# nccyc_var.scale_factor = varlist["scale"][iv]
-# nccyc_var.add_offset   = 0.
-# nccyc_var.units        = 'scale   %s' % varlist["scale"][iv]
-
-#print qx.shape
-#print nccyc_var.shape
-# nccyc_var[:,:,:] = np.swapaxes(gridcyc,0,2)
-nccyc_var[:,:,:] = np.swapaxes(cycgrd_area[:,:,:],0,2)
+    # varlist[0] = ( "trklen",                     "length of track", 'i2',                       '',  trklen[:ntrk])
+    varlist[1] = ("trktime",     "time of the current track point",  'i',                    time0, trktime[:ntrk,:])
+    varlist[0] = ( "trklon","longitude of the current track point",  'f',           'degrees_east',  trklon[:ntrk,:])
+    varlist[2] = ( "trklat", "latitude of the current track point",  'f',          'degrees_north',  trklat[:ntrk,:])
+    varlist[3] = ( "trkslp", "slp in cyclone center from trk file",  'f',                    'hPa',  trkslp[:ntrk,:])
+    varlist[4] = ( "trklpl",             "Laplacian from trk file",  'f','hPa/degrees_latitude**2',  trklpl[:ntrk,:])
+    varlist[5] = ( "trkdp",                  "depth from trk file",  'f',                    'hPa',   trkdp[:ntrk,:])
+    varlist[6] = ( "trkrad",                "radius from trk file",  'f',       'degrees_latitude',   trkrd[:ntrk,:])
+    varlist[7] = ( "trkiop",                      "cyclone status", 'i2','0->strong/1->weak/10->str_open/11->weak_open',  trkiop[:ntrk,:])
 
 
+    # varnam=['trklen','trktime','trklon','trklat','trkslp','trkrad','trklpl','trkdp','trkiop']
 
-nccyc.close()
-
-##---Tracks to NetCDF write---------------------------------------------------------------
-
-
-ftrk = '../ERAint/trkgrid/trk.%d.nc' % (yr)
-nctrk = Dataset(ftrk, 'w', format='NETCDF4')
-nctrk.description = "Tracks from  %s" % (ftrk)
-
-dimnam=('n','ntrk')
-varnam=['trklen','trktime','trklon','trklat']
-
-#dimensions
-nctrk.createDimension(dimnam[0], max_trklength )
-nctrk.createDimension(dimnam[1], None)
-
-#variables
-
-nv=0
-nccyc_var = nctrk.createVariable(varnam[nv], 'i2',dimnam[1])
-nccyc_var.long_name = varnam[nv]
-if varnam[nv] == 'trklen' :
-    nccyc_var.long_name = 'length of track'
-    # nccyc_var.units = 'hours since 1900-01-01 00:00:0.0'
-    # nccyc_var.units = time0
-    #for one time step - test!
-    # tdelta =  datetime.datetime(cyr[ntrk-1,n],cmon[ntrk-1,n],cdate[ntrk-1,n],chour[ntrk-1,n]) - datetime.datetime(1900, 1, 1, 0)
-    # nccyc.variables[varnam[nv]][:] = divmod(tdelta.total_seconds(),3600)[0]
-    nccyc_var[:] = trklen[:ntrk]
-
-nv=1
-nccyc_var = nctrk.createVariable(varnam[nv], 'i',dimnam[::-1])
-nccyc_var.long_name = varnam[nv]
-if varnam[nv] == 'trktime':
-    nccyc_var.long_name = 'time of the current track point'
-    nccyc_var.calendar = 'gregorian'
-    # nccyc_var.units = 'hours since 1900-01-01 00:00:0.0'
-    nccyc_var.units = time0
-    #for one time step - test!
-    # tdelta =  datetime.datetime(cyr[ntrk-1,n],cmon[ntrk-1,n],cdate[ntrk-1,n],chour[ntrk-1,n]) - datetime.datetime(1900, 1, 1, 0)
-    # nccyc.variables[varnam[nv]][:] = divmod(tdelta.total_seconds(),3600)[0]
-    nccyc_var[:,:] = trktime[:ntrk,:]
+    for iv in range(varlist['name'].size) :
+        # print varlist["name"][iv]
+        ncvar = nctrk.createVariable(varlist["name"][iv], varlist["dtype"][iv],dimnam[::-1])
+        ncvar.long_name = varlist["long_name"][iv]
+        ncvar.units     = varlist[    "units"][iv]
+        if varlist["name"][iv] == "trktime": ncvar.calendar = 'gregorian'
+            # print varlist[     "data"][iv]
+            # print trktime[:ntrk,:]
+        ncvar[:]        = varlist[     "data"][iv]
 
 
+    # nv=0
+    # nccyc_var = nctrk.createVariable(varnam[nv], 'i2',dimnam[1])
+    # nccyc_var.long_name = varnam[nv]
+    # if varnam[nv] == 'trklen' :
+    #     nccyc_var.long_name = 'length of track'
+    #     # nccyc_var.units = 'hours since 1900-01-01 00:00:0.0'
+    #     # nccyc_var.units = time0
+    #     #for one time step - test!
+    #     # tdelta =  datetime.datetime(cyr[ntrk-1,n],cmon[ntrk-1,n],cdate[ntrk-1,n],chour[ntrk-1,n]) - datetime.datetime(1900, 1, 1, 0)
+    #     # nccyc.variables[varnam[nv]][:] = divmod(tdelta.total_seconds(),3600)[0]
+    #     nccyc_var[:] = trklen[:ntrk]
+    #
+    # nv=1
+    # nccyc_var = nctrk.createVariable(varnam[nv], 'i',dimnam[::-1])
+    # nccyc_var.long_name = varnam[nv]
+    # if varnam[nv] == 'trktime':
+    #     nccyc_var.long_name = 'time of the current track point'
+    #     nccyc_var.calendar = 'gregorian'
+    #     # nccyc_var.units = 'hours since 1900-01-01 00:00:0.0'
+    #     nccyc_var.units = time0
+    #     #for one time step - test!
+    #     # tdelta =  datetime.datetime(cyr[ntrk-1,n],cmon[ntrk-1,n],cdate[ntrk-1,n],chour[ntrk-1,n]) - datetime.datetime(1900, 1, 1, 0)
+    #     # nccyc.variables[varnam[nv]][:] = divmod(tdelta.total_seconds(),3600)[0]
+    #     nccyc_var[:,:] = trktime[:ntrk,:]
+    #
+    #
+    #
+    # nv=2
+    # nccyc_var = nctrk.createVariable(varnam[nv], 'f',dimnam[::-1])
+    # if varnam[nv] == 'trklon' :
+    #     nccyc_var.long_name = 'longitude of the current track point'
+    #     nccyc_var.units = 'degrees_east'
+    #     # nctrk.variables[varnam[nv]][:] = lats
+    #     nccyc_var[:,:] = trklon[:ntrk,:]
+    #
+    # nv=3
+    # nccyc_var = nctrk.createVariable(varnam[nv], 'f',dimnam[::-1])
+    # if varnam[nv] == 'trklat' :
+    #     nccyc_var.long_name = 'latitude of the current track point'
+    #     nccyc_var.units = 'degrees_north'
+    #     # nctrk.variables[varnam[nv]][:] = lats
+    #     nccyc_var[:,:] = trklat[:ntrk,:]
+    #
+    # nv=4
+    # nccyc_var = nctrk.createVariable(varnam[nv], 'f',dimnam[::-1])
+    # if varnam[nv] == 'trkslp' :
+    #     nccyc_var.long_name = 'slp in cyclone center from trk file'
+    #     nccyc_var.units = 'hPa'
+    #     # nctrk.variables[varnam[nv]][:] = lats
+    #     nccyc_var[:,:] = trkslp[:ntrk,:]
+    #
+    # nv=5
+    # nccyc_var = nctrk.createVariable(varnam[nv], 'f',dimnam[::-1])
+    # if varnam[nv] == 'trkrad' :
+    #     nccyc_var.long_name = 'radius from trk file'
+    #     nccyc_var.units = 'degrees_of_latitude'
+    #     # nctrk.variables[varnam[nv]][:] = lats
+    #     nccyc_var[:,:] = trkrd[:ntrk,:]
+    #
+    nctrk.close()
 
-nv=2
-nccyc_var = nctrk.createVariable(varnam[nv], 'f',dimnam[::-1])
-if varnam[nv] == 'trklon' :
-    nccyc_var.long_name = 'longitude of the current track point'
-    nccyc_var.units = 'degrees_east'
-    # nctrk.variables[varnam[nv]][:] = lats
-    nccyc_var[:,:] = trklon[:ntrk,:]
 
-nv=3
-nccyc_var = nctrk.createVariable(varnam[nv], 'f',dimnam[::-1])
-if varnam[nv] == 'trklat' :
-    nccyc_var.long_name = 'latitude of the current track point'
-    nccyc_var.units = 'degrees_north'
-    # nctrk.variables[varnam[nv]][:] = lats
-    nccyc_var[:,:] = trklat[:ntrk,:]
-
-nctrk.close()
-
-
-##---End NetCDF write---------------------------------------------------------------
+    ##---End NetCDF write---------------------------------------------------------------
