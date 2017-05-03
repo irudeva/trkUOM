@@ -1,0 +1,93 @@
+ Copyright (C) 1995-2015 - All Rights Reserved
+ University Corporation for Atmospheric Research
+ NCAR Command Language Version 6.3.0
+ The use of this software is governed by a License Agreement.
+ See http://www.ncl.ucar.edu/ for more details.
+warning:cnLinesOn is not a valid resource in ezplot1p_map at this time
+warning:cnFillPalette is not a valid resource in ezplot1p_map at this time
+(0)	ftrk= ../ERAint/trkgrid/trk.1979.nc
+(0)	  4075
+(0)	  4451
+(0)	  4581
+(0)	  5193
+(0)	ftrk= ../ERAint/trkgrid/trk.1980.nc
+(0)	  5262
+(0)	ftrk= ../ERAint/trkgrid/trk.1981.nc
+(0)	ftrk= ../ERAint/trkgrid/trk.1982.nc
+(0)	ftrk= ../ERAint/trkgrid/trk.1983.nc
+(0)	  4641
+(0)	  4654
+(0)	ftrk= ../ERAint/trkgrid/trk.1984.nc
+(0)	  4680
+(0)	  4858
+(0)	ftrk= ../ERAint/trkgrid/trk.1985.nc
+(0)	  5079
+(0)	ftrk= ../ERAint/trkgrid/trk.1986.nc
+(0)	ftrk= ../ERAint/trkgrid/trk.1987.nc
+(0)	ftrk= ../ERAint/trkgrid/trk.1988.nc
+(0)	  5879
+(0)	ftrk= ../ERAint/trkgrid/trk.1989.nc
+(0)	  4823
+(0)	ftrk= ../ERAint/trkgrid/trk.1990.nc
+(0)	ftrk= ../ERAint/trkgrid/trk.1991.nc
+(0)	  4821
+(0)	  4865
+(0)	ftrk= ../ERAint/trkgrid/trk.1992.nc
+(0)	ftrk= ../ERAint/trkgrid/trk.1993.nc
+(0)	  5145
+(0)	ftrk= ../ERAint/trkgrid/trk.1994.nc
+(0)	  5179
+(0)	  5216
+(0)	ftrk= ../ERAint/trkgrid/trk.1995.nc
+(0)	  5014
+(0)	ftrk= ../ERAint/trkgrid/trk.1996.nc
+(0)	  4819
+(0)	  5281
+(0)	ftrk= ../ERAint/trkgrid/trk.1997.nc
+(0)	  5538
+(0)	  5974
+(0)	ftrk= ../ERAint/trkgrid/trk.1998.nc
+(0)	  5025
+(0)	ftrk= ../ERAint/trkgrid/trk.1999.nc
+(0)	  4575
+(0)	  5179
+(0)	ftrk= ../ERAint/trkgrid/trk.2000.nc
+(0)	  4685
+(0)	  5532
+(0)	ftrk= ../ERAint/trkgrid/trk.2001.nc
+(0)	  5101
+(0)	  5459
+(0)	ftrk= ../ERAint/trkgrid/trk.2002.nc
+(0)	  5074
+(0)	ftrk= ../ERAint/trkgrid/trk.2003.nc
+(0)	ftrk= ../ERAint/trkgrid/trk.2004.nc
+(0)	  4892
+(0)	  4897
+(0)	  5734
+(0)	ftrk= ../ERAint/trkgrid/trk.2005.nc
+(0)	  4944
+(0)	  5422
+(0)	ftrk= ../ERAint/trkgrid/trk.2006.nc
+(0)	ftrk= ../ERAint/trkgrid/trk.2007.nc
+(0)	  4883
+(0)	ftrk= ../ERAint/trkgrid/trk.2008.nc
+(0)	  5299
+(0)	  5693
+(0)	ftrk= ../ERAint/trkgrid/trk.2009.nc
+(0)	  4998
+(0)	  6363
+(0)	ftrk= ../ERAint/trkgrid/trk.2010.nc
+(0)	  4961
+(0)	  5758
+(0)	ftrk= ../ERAint/trkgrid/trk.2011.nc
+(0)	  5278
+(0)	  5852
+(0)	ftrk= ../ERAint/trkgrid/trk.2012.nc
+(0)	  5457
+(0)	ftrk= ../ERAint/trkgrid/trk.2013.nc
+(0)	  5219
+(0)	ftrk= ../ERAint/trkgrid/trk.2014.nc
+(0)	  5033
+(0)	ftrk= ../ERAint/trkgrid/trk.2015.nc
+(0)	ftrk= ../ERAint/trkgrid/trk.2016.nc
+(0)	  5517

@@ -1,0 +1,18 @@
+ Copyright (C) 1995-2015 - All Rights Reserved
+ University Corporation for Atmospheric Research
+ NCAR Command Language Version 6.3.0
+ The use of this software is governed by a License Agreement.
+ See http://www.ncl.ucar.edu/ for more details.
+fatal:syntax error: line 284 in file plot_trk.ncl before or near False 
+    print(mask(trkslp,trkmask.eq.0.False
+---------------------------------------^
+
+fatal:error in statement
+fatal:syntax error: line 286 in file plot_trk.ncl before or near . 
+    slppdf = array_append_record (slppdf, trkslp.
+------------------------------------------------^
+
+fatal:Syntax Error in block, block not executed
+fatal:error at line 310 in file plot_trk.ncl
+
+

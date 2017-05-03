@@ -6,14 +6,14 @@ month_abbr = (/"","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep", \
                     "Oct","Nov","Dec"/)
 
 ; time
-year = (/1979,1979/)
-yr = 2016 ; year(0)
-mm = (/9,12/)  ;(/9,9/)
+year = (/1979,2016/)
+yr = year(0)
+mm = (/1,12/)  ;(/9,9/)
 dd = (/0,31/)
 hr = (/0,18/)
 
 ;ssn   / use "YYY" for whole year
-ssn="SON"
+ssn="DJF"
 
 ;ntrk
 trk1 = 0; 5518 ;0
@@ -24,10 +24,31 @@ hs = "SH"
 ;lon = (/100-2.5,100+2.5/)
 ;lat = (/-39.-2.5,-39+2.5/)
 ;reg = "indoc"
-lon = (/0,360/)
-lat = (/-90,0/)
-reg = "hs"
+;lon = (/0,360/)
+;lat = (/-90,0/)
+;reg = "hs"
+lon = (/139-2.5,139+2.5/)
+lat = (/-39.-2.5,-35+2.5/)
+reg = "adel"
 
+;reg2
+ngen = 3
+lon2 = (/0,120/)
+lat2 = (/-60,-35/)
+reg2 = "IO"
+;lon2 = (/100-2.5,100+2.5/)
+;lat2 = (/-39.-2.5,-39+2.5/)
+;reg2 = "indoc"
+
+;************************************************
+; define some variables
+;************************************************
+
+ntrk_total = 0
+
+slparr1 = new(1, float)
+slparr1 = 0.
+slparr = slparr1
 
 ;************************************************
 ; read in netCDF files
@@ -72,7 +93,7 @@ date_str1 = sprinti("%0.4i", year(0))+sprinti("%0.2i", mm(0))+ \
 date_str2 = sprinti("%0.4i", year(1))+sprinti("%0.2i", mm(1))+ \
              sprinti("%0.2i", dd(1)) +"_"+sprinti("%0.2iZ", hr(1))
 
-wks = gsn_open_wks("png","../ERAint/trkgrid/tracks."+ssn+"."+date_str1+"_"+date_str2+"."+reg+"."+hs )                  ; send graphics to PNG file
+wks = gsn_open_wks("png","../ERAint/trkgrid/tracks."+ssn+"."+date_str1+"_"+date_str2+"."+reg+"_"+reg2+"."+hs )                  ; send graphics to PNG file
 
 res = True
 res@gsnDraw              = False             ; do not draw the plot
@@ -90,7 +111,7 @@ res@mpMaxLatF            =  -10.
 ;res@mpMinLonF            =  -60.
 ;res@mpMaxLonF            = 120.
 
-res@tiMainString        = "From "+date_str1+" to "+date_str2 + "~C~~Z90~ reg lon: ("+lon(0)+"E to "+lon(1)+"E)  lat: ("+lat(0)+"N to "+lat(1)+"N)"
+res@tiMainString        = "From "+date_str1+" to "+date_str2 + "~C~~Z90~ reg lon: ("+lon(0)+"E to "+lon(1)+"E)  lat: ("+lat(0)+"N to "+lat(1)+"N)" + "~C~~Z90~ reg2 lon: ("+lon2(0)+"E to "+lon2(1)+"E)  lat: ("+lat2(0)+"N to "+lat2(1)+"N)"
 res@tiMainFontHeightF   = 0.015
 
 ;plot1 = gsn_csm_contour_map(wks,slp1,res)
@@ -190,12 +211,24 @@ do ntrk = 0,dimsizes(trklen)-1
           if (trklat(ntrk,n).ge.lat(0).and.trklat(ntrk,n).le.lat(1))then
            if (trklon(ntrk,n).ge.lon(0).and.trklon(ntrk,n).le.lon(1)) then
             trkmask(ntrk,n) = 1
+            ;print (n+" for reg  "+ntrk)
             ;print (n+"  "+ntrk)
             ;print (trklon(ntrk,n))
             ;print (trklat(ntrk,n))
             ;status_exit(1)
            end if  ;lon
           end if  ;lat
+          ; for generation (n<=ngen) in reg 2
+          if (n.le.ngen)then
+            if (trklat(ntrk,n).ge.lat2(0).and.trklat(ntrk,n).le.lat2(1))then
+             if (trklon(ntrk,n).ge.lon2(0).and.trklon(ntrk,n).le.lon2(1)) then
+              trkmask(ntrk,n) = 2
+              ;print (n+" for reg2  "+ntrk)
+              ;print (trklon(ntrk,n))
+              ;print (trklat(ntrk,n))
+             end if  ;lon
+            end if  ;lat
+          end if
 
         end if
 
@@ -217,8 +250,9 @@ end do  ; ntrk
 
 do ntrk = 0,dimsizes(trklen)-1
  nit = trklen(ntrk)
- if(any(trkmask(ntrk,:).eq.1))then
+ if(any(trkmask(ntrk,:).eq.1).and.any(trkmask(ntrk,:).eq.2))then
   print ("  "+ntrk)
+  ntrk_total = ntrk_total+1
 
   ;************************************************
   ; add polyline
@@ -254,7 +288,35 @@ do ntrk = 0,dimsizes(trklen)-1
   txt = unique_string("txt")
   ;plot1@$txt$ = gsn_add_text(wks,plot1,date2plot,trklon(ntrk,nt)+3.,trklat(ntrk,nt)-3.,txres)
 
+  ;************************************************
+  ; pdf stat
+  ;************************************************
+   trkdr = new(nit-4,float)
+   do in =0, nit-5
+    trkdr(in) = trkslp(ntrk,in+4)-trkslp(ntrk,in)
+   end do
+
+
+   if(any(slparr1.ne.0))then
+    delete(slparr)
+    delete(drarr)
+    slparr = array_append_record(slparr1, min(trkslp(ntrk,ind(trkmask(ntrk,:nit-1).eq.1))), 0)
+    drarr = array_append_record(drarr1,min(trkdr), 0)
+    delete(slparr1)
+    delete(drarr1)
+    slparr1 = slparr
+    drarr1  = drarr
+   else
+    delete(slparr1)
+    slparr1 = trkslp(ntrk,ind(trkmask(ntrk,:nit-1).eq.1))
+    drarr1 = min(trkdr)
+    drarr  = drarr1
+
+   end if
+  ;************************************************
+  print ("  "+ntrk+"  dr="+min(trkdr))
   delete(trkdate)
+  delete(trkdr)
 
   ;status_exit(1)
   ;break
@@ -274,5 +336,62 @@ end do   ; yr
 
 draw(plot1)
 frame(wks)
+
+;************************************************
+; pdf stat
+;************************************************
+
+opt         = True
+  opt@bin_min = 960.
+  opt@bin_max = 1025.
+  nbins = (opt@bin_max - opt@bin_min)/2.5
+
+slppdf = pdfx(slparr, toint(nbins), opt)
+
+print("PDF slp:")
+print(slppdf@bin_center+" "+slppdf)
+
+; deepening rate
+opt@bin_min = -24.
+opt@bin_max = 0.
+nbins = (opt@bin_max - opt@bin_min)/2
+
+drpdf = pdfx(drarr(ind(drarr.lt.0)), toint(nbins), opt)
+
+print("PDF dr:")
+print(drpdf@bin_center+" "+drpdf)
+
+
+;------------------------------------------------
+; Plot each PDF
+;------------------------------------------------
+  nVar    = 3
+  plot    = new ( nVar, "graphic")
+
+  wks1  = gsn_open_wks ("png","../ERAint/trkgrid/pdf."+ssn+"."+date_str1+"_"+date_str2+"."+reg+"_"+reg2+"."+hs )             ; send graphics to PNG file
+
+  zres  = True
+  zres@gsnDraw                = False
+  zres@gsnFrame               = False
+  zres@xyLineThicknessF       = 2
+
+  zres@gsnLeftString          = "SLP"
+  zres@tiYAxisString          = "PDF (%)"
+  zres@tiXAxisString          = "hPa"
+  zres@gsnRightString         = "N trkacks "+ntrk_total
+  plot(0) = gsn_csm_xy (wks1, slppdf@bin_center, slppdf, zres)
+
+  zres@gsnLeftString          = "Maximum deepening rate"
+  zres@tiYAxisString          = ""
+  zres@gsnRightString         = "N trkacks "+num(drarr.lt.0)
+  zres@tiXAxisString          = "hPa / 24 hours"
+  plot(1) = gsn_csm_xy (wks1, drpdf@bin_center, drpdf, zres)
+
+  resP    = True
+  resP@txString        = res@tiMainString
+  resP@gsnPanelRowSpec = True                   ; tell panel what order to plt
+  ;gsn_panel(wks,plot(:1),(/2,0/),resP)
+  gsn_panel(wks1,plot(:1),2,resP)
+
 
 end
