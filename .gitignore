@@ -3,3 +3,4 @@ NCEP
 topo
 output
 scripts/tmp
+scripts/*.txt

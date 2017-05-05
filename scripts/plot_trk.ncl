@@ -6,14 +6,14 @@ month_abbr = (/"","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep", \
                     "Oct","Nov","Dec"/)
 
 ; time
-year = (/1979,2016/)
+year = (/2016,2016/)
 yr = year(0)
 mm = (/1,12/)  ;(/9,9/)
 dd = (/0,31/)
 hr = (/0,18/)
 
 ;ssn   / use "YYY" for whole year
-ssn="DJF"
+ssn="YYY"
 
 ;ntrk
 trk1 = 0; 5518 ;0
@@ -39,6 +39,10 @@ reg2 = "IO"
 ;lon2 = (/100-2.5,100+2.5/)
 ;lat2 = (/-39.-2.5,-39+2.5/)
 ;reg2 = "indoc"
+
+
+selyr = 2016
+seltrk = 5517
 
 ;************************************************
 ; define some variables
@@ -111,7 +115,7 @@ res@mpMaxLatF            =  -10.
 ;res@mpMinLonF            =  -60.
 ;res@mpMaxLonF            = 120.
 
-res@tiMainString        = "From "+date_str1+" to "+date_str2 + "~C~~Z90~ reg lon: ("+lon(0)+"E to "+lon(1)+"E)  lat: ("+lat(0)+"N to "+lat(1)+"N)" + "~C~~Z90~ reg2 lon: ("+lon2(0)+"E to "+lon2(1)+"E)  lat: ("+lat2(0)+"N to "+lat2(1)+"N)"
+;res@tiMainString        = "From "+date_str1+" to "+date_str2 + "~C~~Z90~ reg lon: ("+lon(0)+"E to "+lon(1)+"E)  lat: ("+lat(0)+"N to "+lat(1)+"N)" + "~C~~Z90~ reg2 lon: ("+lon2(0)+"E to "+lon2(1)+"E)  lat: ("+lat2(0)+"N to "+lat2(1)+"N)"
 res@tiMainFontHeightF   = 0.015
 
 ;plot1 = gsn_csm_contour_map(wks,slp1,res)
@@ -127,8 +131,13 @@ plot1 = gsn_csm_map(wks,res)
 
 plres = True
 
- plres@gsLineColor      = "red"                  ; color of lines
+ plres@gsLineColor      = "black"                  ; color of lines
  plres@gsLineThicknessF = 2.0                    ; thickness of lines
+
+pl1res = True   ; for a selected track
+
+  pl1res@gsLineColor      = "red"                  ; color of lines
+  pl1res@gsLineThicknessF = 3.0                    ; thickness of lines
 
 mres = True
 
@@ -138,6 +147,9 @@ mres = True
 txres               = True
  txres@txFontHeightF = 0.01
 
+cycres             = True
+ cycres@gsLineColor      = "red"                  ; color of lines
+ cycres@gsLineThicknessF = 2.0
  ;************************************************
  ; read in netCDF files
  ;************************************************
@@ -262,14 +274,18 @@ do ntrk = 0,dimsizes(trklen)-1
   ;print (trklon(ntrk,:nit-1))
   ;print (trklat(ntrk,:nit-1))
   str = unique_string("poly")            ;-- result is poly0-poly15
-  plot1@$str$ = gsn_add_polyline(wks,plot1,trklon(ntrk,:nit-1),trklat(ntrk,:nit-1),plres)
+  if(selyr.eq.2016.and.ntrk.eq.seltrk)then
+   plot1@$str$ = gsn_add_polyline(wks,plot1,trklon(ntrk,:nit-1),trklat(ntrk,:nit-1),pl1res)
+  else
+   plot1@$str$ = gsn_add_polyline(wks,plot1,trklon(ntrk,:nit-1),trklat(ntrk,:nit-1),plres)
+  end if
 
   ;************************************************
   ; add polymarker
   ;************************************************
   mres@gsMarkerColor      = 20
   str = unique_string("marker")            ;-- result is poly0-poly15
-  plot1@$str$ = gsn_add_polymarker(wks,plot1,trklon(ntrk,:nit-1),trklat(ntrk,:nit-1),mres)
+  ;plot1@$str$ = gsn_add_polymarker(wks,plot1,trklon(ntrk,:nit-1),trklat(ntrk,:nit-1),mres)
 
   ;************************************************
   ; add date
@@ -293,7 +309,10 @@ do ntrk = 0,dimsizes(trklen)-1
   ;************************************************
    trkdr = new(nit-4,float)
    do in =0, nit-5
-    trkdr(in) = trkslp(ntrk,in+4)-trkslp(ntrk,in)
+    trkdr(in) = (trkslp(ntrk,in+4)-trkslp(ntrk,in))*sin(60*3.14/180)/sin(3.14*abs(avg((/trklat(ntrk,in+4),trklat(ntrk,in)/)))/180)
+    tmp = trkslp(ntrk,in+4)-trkslp(ntrk,in)
+    print("dr: "+in+"  "+trkdr(in)+ " "+tmp)
+    print("slp: "+in+"  "+trkslp(ntrk,in)+"  "+trkslp(ntrk,in+4))
    end do
 
 
@@ -302,6 +321,10 @@ do ntrk = 0,dimsizes(trklen)-1
     delete(drarr)
     slparr = array_append_record(slparr1, min(trkslp(ntrk,ind(trkmask(ntrk,:nit-1).eq.1))), 0)
     drarr = array_append_record(drarr1,min(trkdr), 0)
+    if(selyr.eq.2016.and.ntrk.eq.seltrk)then
+     seldr  = min(trkdr)
+     selslp = min(trkslp(ntrk,ind(trkmask(ntrk,:nit-1).eq.1)))
+    end if
     delete(slparr1)
     delete(drarr1)
     slparr1 = slparr
@@ -334,17 +357,17 @@ delete(trkmask)
 
 end do   ; yr
 
-draw(plot1)
-frame(wks)
+;draw(plot1)
+;frame(wks)
 
 ;************************************************
 ; pdf stat
 ;************************************************
 
 opt         = True
-  opt@bin_min = 960.
-  opt@bin_max = 1025.
-  nbins = (opt@bin_max - opt@bin_min)/2.5
+  opt@bin_min = 976.
+  opt@bin_max = 1024.
+  nbins = (opt@bin_max - opt@bin_min)/2.
 
 slppdf = pdfx(slparr, toint(nbins), opt)
 
@@ -352,7 +375,7 @@ print("PDF slp:")
 print(slppdf@bin_center+" "+slppdf)
 
 ; deepening rate
-opt@bin_min = -24.
+opt@bin_min = -38.
 opt@bin_max = 0.
 nbins = (opt@bin_max - opt@bin_min)/2
 
@@ -365,33 +388,87 @@ print(drpdf@bin_center+" "+drpdf)
 ;------------------------------------------------
 ; Plot each PDF
 ;------------------------------------------------
-  nVar    = 3
-  plot    = new ( nVar, "graphic")
+  plot    = new ( 2, "graphic")
 
-  wks1  = gsn_open_wks ("png","../ERAint/trkgrid/pdf."+ssn+"."+date_str1+"_"+date_str2+"."+reg+"_"+reg2+"."+hs )             ; send graphics to PNG file
+  ;wks1  = gsn_open_wks ("png","../ERAint/trkgrid/pdf."+ssn+"."+date_str1+"_"+date_str2+"."+reg+"_"+reg2+"."+hs )             ; send graphics to PNG file
 
   zres  = True
   zres@gsnDraw                = False
   zres@gsnFrame               = False
+
+  zres@vpHeightF = 0.4
+
+  zres@gsnXYBarChart          = True            ; Create bar plot
+  zres@gsnXYBarChartBarWidth  = 1.5
+
   zres@xyLineThicknessF       = 2
+
+  zres@gsnLeftStringFontHeightF     = 0.02
+  zres@gsnRightStringFontHeightF    = 0.02
+  zres@tiYAxisFontHeightF           = 0.015
+
 
   zres@gsnLeftString          = "SLP"
   zres@tiYAxisString          = "PDF (%)"
   zres@tiXAxisString          = "hPa"
-  zres@gsnRightString         = "N trkacks "+ntrk_total
-  plot(0) = gsn_csm_xy (wks1, slppdf@bin_center, slppdf, zres)
+  zres@gsnRightString         = "N of trkacks "+ntrk_total
+  plot(0) = gsn_csm_xy (wks, slppdf@bin_center, slppdf, zres)
 
+
+  ; adding a polyline
+
+    xval = selslp
+
+    getvalues plot(0)
+       "trYMinF": ymin
+       "trYMaxF": ymax
+    end getvalues
+
+   xbars = (/xval, xval/)
+   ybars = (/ymin, ymax/)
+
+   slpline = gsn_add_polyline(wks,plot(0),xbars,ybars,cycres)
+
+   ; end add polyline
+
+   ; plotting DR
+  zres@gsnXYBarChartBarWidth  = 1.5
+  zres@gsnYRefLine  = 0.
   zres@gsnLeftString          = "Maximum deepening rate"
   zres@tiYAxisString          = ""
   zres@gsnRightString         = "N trkacks "+num(drarr.lt.0)
   zres@tiXAxisString          = "hPa / 24 hours"
-  plot(1) = gsn_csm_xy (wks1, drpdf@bin_center, drpdf, zres)
+  plot(1) = gsn_csm_xy (wks, drpdf@bin_center, drpdf, zres)
 
+  ; adding a polyline
+
+    xval = seldr
+
+    getvalues plot(1)
+       "trYMinF": ymin
+       "trYMaxF": ymax
+    end getvalues
+
+   xbars = (/xval, xval/)
+   ybars = (/ymin, ymax/)
+
+   drline = gsn_add_polyline(wks,plot(1),xbars,ybars,cycres)
+
+   ; end add polyline
+
+; panel plot
   resP    = True
-  resP@txString        = res@tiMainString
-  resP@gsnPanelRowSpec = True                   ; tell panel what order to plt
+  resP@gsnMaximize      = True                   ; use full page
+  resP@gsnPanelBottom   = 0.06                   ; save space at bottom
+  resP@gsnPanelLeft     = 0.06                   ; save space at bottom
+  resP@gsnPanelYWhiteSpacePercent  = 5.
+
+
+  ;resP@txString        = res@tiMainString
+  resP@gsnPanelRowSpec = True
   ;gsn_panel(wks,plot(:1),(/2,0/),resP)
-  gsn_panel(wks1,plot(:1),2,resP)
+  ;gsn_panel(wks1,plot(:1),2,resP)
+  gsn_panel(wks,(/plot1,plot(0),plot(1)/),(/1,2/),resP)
 
 
 end
