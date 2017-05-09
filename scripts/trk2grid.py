@@ -414,7 +414,7 @@ for yr in range(1980,2017):
     if ird == 0 :
         nccyc_var.radius = cycrad
     elif ird == 1:
-        nccyc_var.radius = "rd from origina trk file"
+        nccyc_var.radius = "rd from original trk file"
     # nccyc_var.scale_factor = varlist["scale"][iv]
     # nccyc_var.add_offset   = 0.
     # nccyc_var.units        = 'scale   %s' % varlist["scale"][iv]
