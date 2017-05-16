@@ -4,12 +4,12 @@ begin
 ;************************************************
 ; 1. slp
 ;************************************************
-yr = 2016
+yr = 1979
 mm = 9
-dd = 29
-hr = 0
+dd = 7
+hr = 18
 ;t = 0
-hs ="SH"
+hs ="NH"
   a = addfile("/Users/irudeva/work/DATA/ERAint/erain.mslp."+yr+".nc","r")
 
   ;slp = short2flt(a->msl(t,:,:))
@@ -54,6 +54,8 @@ hs ="SH"
 
   ;print(datecyc)
   ;status_exit(1)
+  print("cyc time")
+  sleep(1)
 
   do nt=0, dimsizes(timecyc)-1
     if (datecyc(nt,0).eq.yr.and.datecyc(nt,1).eq.mm.and.datecyc(nt,2).eq.dd.and.datecyc(nt,3).eq.hr)then
@@ -61,6 +63,9 @@ hs ="SH"
      break
     end if
   end do
+
+  print(tslp+" "+tcyc)
+sleep(5)
   ;print(n)
   ;print (cd_calendar(timecyc(tcyc), 0))
   ;status_exit(1)
@@ -101,8 +106,16 @@ res@cnFillPalette       = "BlueDarkRed18"  ; Set color map
 res@gsnPolar   = hs
 
 ;res@mpLimitMode="LatLon"
-res@mpMinLatF            = -90      ; range to zoom in on
-res@mpMaxLatF            =  -10.
+if (hs.eq."NH")then
+ res@mpMinLatF            = 25      ; range to zoom in on
+ res@mpMaxLatF            =  90.
+ else if (hs.eq."SH")then
+   res@mpMinLatF            = -90      ; range to zoom in on
+   res@mpMaxLatF            =  -25.
+ else
+   print("ERROR: Check hs")
+ end if
+ end if
 ;res@mpMinLonF            =  -60.
 ;res@mpMaxLonF            = 120.
 
@@ -182,9 +195,9 @@ do j = 0,dimsizes(cycloc(tcyc,:,0))-1
 
    ; labling
    trknum = new(dimsizes(cyclon),"float")
-   print(dimsizes(cyclon))
-   print(cycloc(tcyc,j,indloc))
-   print(tcyc+" "+j+" "+indloc)
+  ;  print(dimsizes(cyclon))
+  ;  print(cycloc(tcyc,j,indloc))
+  ;  print(tcyc+" "+j+" "+indloc)
    trknum = cycloc(tcyc,j,indloc)
 
    ;print(trknum)

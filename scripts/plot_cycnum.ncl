@@ -8,11 +8,11 @@ month_abbr = (/"","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep", \
 ; time
 
  ;ssn   / use "YYY" for whole year
-  ssn="YYY"
+  ssn="DJF"
 
  year = (/2016,2016/)
  yr = year(0)
- mm = (/6,8/)  ;(/9,9/)
+ mm = (/1,12/)  ;(/9,9/)
  dd = (/0,31/)
  hr = (/0,18/)
 
@@ -85,8 +85,10 @@ res@tiMainString        = date_str1 +" to "+ date_str2
 ;************************************************
 
   do iyr =year(0),year(1)
+  fin = "../ERAint/trkgrid/cycloc_rd."+iyr+".nc"
+  print("fin = "+fin)
 
-  b = addfile("../ERAint/trkgrid/cycloc_rd."+iyr+".nc","r")
+  b = addfile(fin,"r")
   cycloc = b->cycloc(:,:,:)
   cycarea = b->cycarea(:,:,:)
   lat = b->latitude
