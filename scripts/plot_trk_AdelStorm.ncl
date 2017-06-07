@@ -8,6 +8,8 @@ month_abbr = (/"","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep", \
 ; time
 year = (/2016,2016/)
 yr = year(0)
+do im = 1,1
+; mm = (/im,im/)
 mm = (/1,12/)  ;(/9,9/)
 dd = (/0,31/)
 hr = (/0,18/)
@@ -97,9 +99,18 @@ date_str1 = sprinti("%0.4i", year(0))+sprinti("%0.2i", mm(0))+ \
 date_str2 = sprinti("%0.4i", year(1))+sprinti("%0.2i", mm(1))+ \
              sprinti("%0.2i", dd(1)) +"_"+sprinti("%0.2iZ", hr(1))
 
-wks = gsn_open_wks("png","../ERAint/trkgrid/tracks."+ssn+"."+date_str1+"_"+date_str2+"."+reg+"_"+reg2+"."+hs )                  ; send graphics to PNG file
+wks_type = "png"
+wks_type@wkWidth = 2500
+wks_type@wkHeight = 2500
+
+
+wks = gsn_open_wks(wks_type,"../ERAint/output/AdelStorm/tracks_tmp1."+ssn+"."+date_str1+"_"+date_str2+"."+reg+"_"+reg2+"."+hs )                  ; send graphics to PNG file
 
 res = True
+
+res@vpHeightF = 0.6
+res@vpWidthF = 0.6
+
 res@gsnDraw              = False             ; do not draw the plot
 res@gsnFrame             = False             ; do not advance the frame
 
@@ -139,10 +150,10 @@ pl1res = True   ; for a selected track
   pl1res@gsLineColor      = "red"                  ; color of lines
   pl1res@gsLineThicknessF = 3.0                    ; thickness of lines
 
-mres = True
+mrkres = True
 
- mres@gsMarkerIndex = 16
- mres@gsMarkerSizeF = .003
+ mrkres@gsMarkerIndex = 16
+ mrkres@gsMarkerSizeF = .003
 
 txres               = True
  txres@txFontHeightF = 0.01
@@ -200,23 +211,24 @@ do ntrk = 0,dimsizes(trklen)-1
    do n = 0,nit-1
     ;print(trkdate(n,1)+" ")
     ;detect season
-    if(any((/1,2,12/).eq.trkdate(n,1)))then
+    n1 = 1 ; if the first point is in the selected period then proceed
+    if(any((/1,2,12/).eq.trkdate(n1,1)))then
       trkssn = "DJF"
     end if
-    if(any((/3,4,5/).eq.trkdate(n,1)))then
+    if(any((/3,4,5/).eq.trkdate(n1,1)))then
       trkssn = "MAM"
     end if
-    if(any((/6,7,8/).eq.trkdate(n,1)))then
+    if(any((/6,7,8/).eq.trkdate(n1,1)))then
       trkssn = "JJA"
     end if
-    if(any((/9,10,11/).eq.trkdate(n,1)))then
+    if(any((/9,10,11/).eq.trkdate(n1,1)))then
       trkssn = "SON"
     end if
 
-    if (trkdate(n,0).ge.year(0).and.trkdate(n,0).le.year(1).and.trkdate(n,0).eq.iyr)then
-     if (trkdate(n,1).ge.mm(0).and.trkdate(n,1).le.mm(1))then
-      if (trkdate(n,2).ge.dd(0).and.trkdate(n,2).le.dd(1))then
-       if (trkdate(n,3).ge.hr(0).and.trkdate(n,3).le.hr(1))then
+    if (trkdate(n1,0).ge.year(0).and.trkdate(n1,0).le.year(1).and.trkdate(n1,0).eq.iyr)then
+     if (trkdate(n1,1).ge.mm(0).and.trkdate(n1,1).le.mm(1))then
+      if (trkdate(n1,2).ge.dd(0).and.trkdate(n1,2).le.dd(1))then
+       if (trkdate(n1,3).ge.hr(0).and.trkdate(n1,3).le.hr(1))then
 
         if (ssn.eq."YYY".or.trkssn.eq.ssn)then
 
@@ -283,9 +295,9 @@ do ntrk = 0,dimsizes(trklen)-1
   ;************************************************
   ; add polymarker
   ;************************************************
-  mres@gsMarkerColor      = 20
+  mrkres@gsMarkerColor      = 20
   str = unique_string("marker")            ;-- result is poly0-poly15
-  ;plot1@$str$ = gsn_add_polymarker(wks,plot1,trklon(ntrk,:nit-1),trklat(ntrk,:nit-1),mres)
+  ;plot1@$str$ = gsn_add_polymarker(wks,plot1,trklon(ntrk,:nit-1),trklat(ntrk,:nit-1),mrkres)
 
   ;************************************************
   ; add date
@@ -319,21 +331,28 @@ do ntrk = 0,dimsizes(trklen)-1
    if(any(slparr1.ne.0))then
     delete(slparr)
     delete(drarr)
+    delete(ltarr)
     slparr = array_append_record(slparr1, min(trkslp(ntrk,ind(trkmask(ntrk,:nit-1).eq.1))), 0)
     drarr = array_append_record(drarr1,min(trkdr), 0)
+    ltarr = array_append_record(ltarr1,nit, 0)
     if(selyr.eq.2016.and.ntrk.eq.seltrk)then
      seldr  = min(trkdr)
      selslp = min(trkslp(ntrk,ind(trkmask(ntrk,:nit-1).eq.1)))
+     sellt  = nit
     end if
     delete(slparr1)
     delete(drarr1)
+    delete(ltarr1)
     slparr1 = slparr
     drarr1  = drarr
+    ltarr1  = ltarr
    else
     delete(slparr1)
     slparr1 = trkslp(ntrk,ind(trkmask(ntrk,:nit-1).eq.1))
     drarr1 = min(trkdr)
+    ltarr1 = nit
     drarr  = drarr1
+    ltarr  = ltarr1
 
    end if
   ;************************************************
@@ -384,11 +403,21 @@ drpdf = pdfx(drarr(ind(drarr.lt.0)), toint(nbins), opt)
 print("PDF dr:")
 print(drpdf@bin_center+" "+drpdf)
 
+; lifetime
+opt@bin_min = 0.
+opt@bin_max = 80.
+nbins = (opt@bin_max - opt@bin_min)/4
+
+ltpdf = pdfx(ltarr, toint(nbins), opt)
+
+print("PDF lt:")
+print(ltpdf@bin_center+" "+ltpdf)
+
 
 ;------------------------------------------------
 ; Plot each PDF
 ;------------------------------------------------
-  plot    = new ( 2, "graphic")
+  plot    = new ( 4, "graphic")
 
   ;wks1  = gsn_open_wks ("png","../ERAint/trkgrid/pdf."+ssn+"."+date_str1+"_"+date_str2+"."+reg+"_"+reg2+"."+hs )             ; send graphics to PNG file
 
@@ -420,8 +449,8 @@ print(drpdf@bin_center+" "+drpdf)
     xval = selslp
 
     getvalues plot(0)
-       "trYMinF": ymin
-       "trYMaxF": ymax
+      "trYMinF": ymin
+      "trYMaxF": ymax
     end getvalues
 
    xbars = (/xval, xval/)
@@ -432,11 +461,13 @@ print(drpdf@bin_center+" "+drpdf)
    ; end add polyline
 
    ; plotting DR
+
+
   zres@gsnXYBarChartBarWidth  = 1.5
   zres@gsnYRefLine  = 0.
   zres@gsnLeftString          = "Maximum deepening rate"
   zres@tiYAxisString          = ""
-  zres@gsnRightString         = "N trkacks "+num(drarr.lt.0)
+  zres@gsnRightString         = "N of trkacks "+num(drarr.lt.0)
   zres@tiXAxisString          = "hPa / 24 hours"
   plot(1) = gsn_csm_xy (wks, drpdf@bin_center, drpdf, zres)
 
@@ -445,8 +476,8 @@ print(drpdf@bin_center+" "+drpdf)
     xval = seldr
 
     getvalues plot(1)
-       "trYMinF": ymin
-       "trYMaxF": ymax
+      "trYMinF": ymin
+      "trYMaxF": ymax
     end getvalues
 
    xbars = (/xval, xval/)
@@ -456,19 +487,94 @@ print(drpdf@bin_center+" "+drpdf)
 
    ; end add polyline
 
+  ; plotting LT
+ ; zres@gsnXYBarChartBarWidth  = 1.5
+ zres@tmXBValues      = fspan(0,80,5)
+ zres@tmXBLabels      = "" + fspan(0,80,5)
+ zres@tmXBMinorValues = fspan(0,80,21)
+
+
+ zres@gsnYRefLine  = 0.
+ zres@gsnLeftString          = "Life time"
+ zres@tiYAxisString          = "PDF (%)"
+ zres@gsnRightString         = "N of trkacks "+ntrk_total
+ zres@tiXAxisString          = "N of 6h timesteps"
+ plot(2) = gsn_csm_xy (wks, ltpdf@bin_center, ltpdf, zres)
+ ; adding a polyline
+
+   xval = sellt
+
+   getvalues plot(2)
+     "trYMinF": ymin
+     "trYMaxF": ymax
+   end getvalues
+
+  xbars = (/xval, xval/)
+  ybars = (/ymin, ymax/)
+
+  ltline = gsn_add_polyline(wks,plot(2),xbars,ybars,cycres)
+
+  ; end add polyline
+
+  ;monthly N of tracks
+  ncyc = (/3,2,3,6,24,29,30,36,28,14,5,3/)
+  mon = (/"Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"/)
+
+  mres  = True
+  mres@gsnDraw                = False
+  mres@gsnFrame               = False
+
+  mres@vpHeightF = zres@vpHeightF
+
+  mres@gsnXYBarChart          = zres@gsnXYBarChart           ; Create bar plot
+  mres@gsnXYBarChartBarWidth  = 1.
+
+  mres@xyLineThicknessF       = zres@xyLineThicknessF
+
+  mres@gsnLeftStringFontHeightF     = zres@gsnLeftStringFontHeightF
+  mres@gsnRightStringFontHeightF    = zres@gsnRightStringFontHeightF
+  mres@tiYAxisFontHeightF           = zres@tiYAxisFontHeightF
+
+  mres@gsnYRefLine  = 0.
+
+
+
+  mres@gsnLeftString          = "Number of tracks"
+  mres@tiYAxisString          = "N tracks"
+  mres@gsnRightString         = "Total N of trkacks "+sum(ncyc)
+
+
+  mres@gsnXYBarChartBarWidth = 0.75                 ; change bar widths
+
+  mres@tmXBMode      = "Explicit"                ; Define own tick mark labels.
+  mres@tmXBValues    = fspan(0,11,12)
+  mres@tmXBLabels    = mon
+  mres@tiXAxisString = ""
+
+  mres@tmXBLabelAngleF = 45
+
+  plot(3) = gsn_csm_xy (wks,fspan(0,11,12),ncyc,mres)
+
 ; panel plot
   resP    = True
   resP@gsnMaximize      = True                   ; use full page
   resP@gsnPanelBottom   = 0.06                   ; save space at bottom
   resP@gsnPanelLeft     = 0.06                   ; save space at bottom
-  resP@gsnPanelYWhiteSpacePercent  = 5.
+  resP@gsnPanelYWhiteSpacePercent  = 3.
 
 
   ;resP@txString        = res@tiMainString
   resP@gsnPanelRowSpec = True
   ;gsn_panel(wks,plot(:1),(/2,0/),resP)
   ;gsn_panel(wks1,plot(:1),2,resP)
-  gsn_panel(wks,(/plot1,plot(0),plot(1)/),(/1,2/),resP)
+  resP@gsnMaximize    = True                ; maximize plots
+  gsn_panel(wks,(/plot1,plot(0),plot(1),plot(2),plot(3)/),(/1,2,2/),resP)
+
+;frame(wks)
+delete(drarr)
+delete(slparr)
+
+end do ; months
 
 
 end
